@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <style type="text/css">
+        html,body,#wrapper,#main{
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        #wrapper {
+            display: table;
+        }
+        #main {
+            text-align: center;
+            vertical-align: middle;
+            display: table-cell;
+        }
+        #canvas {
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+        }
+        #cover {
+            z-index: 99;
+            box-shadow: inset 0 0 600px #000;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            left: 0;
+            position: fixed;
+        }
+    </style>
+    <script type="text/javascript" src="a.js"></script>
+  </head>
+  <body>
+    <div id="cover"></div>
+    <div id="wrapper">
+        <div id="main">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+    <script type="text/javascript">
+        window.requestAnimFrame =
+        window.requestAnimationFrame       ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame    ||
+        window.oRequestAnimationFrame      ||
+        window.msRequestAnimationFrame     ||
+        function (callback) {
+            window.setTimeout(callback, 1000 / 60);
+        };
+
+        var main = document.getElementById("main"),
+            c = document.getElementById("canvas");
+
+        c.width  = window.innerWidth;
+        c.height = window.innerHeight;
+
+        document.getElementById('cover').addEventListener('mousemove', function (e) {
+            tabcin.change_rate(e.y);
+            tabcin.change_color(e.x);
+        });
+
+        tabcin.init(c);
+        tabcin.draw();
+    </script>
+  </body>
+</html>

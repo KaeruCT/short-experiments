@@ -1,0 +1,39 @@
+<html>
+<head>
+    <script type="text/javascript" src="test.js"></script>
+    <script type="text/javascript">
+
+        function alertThing(msg) {
+            alert(msg);
+        }
+
+
+        function doThing() {
+            var doAsyncThing = function (onDone) {
+                ajaxGet('data.txt', function (result) {
+                    onDone.call(null, result);
+                });
+            };
+
+            return new Promise(doAsyncThing);
+        }
+
+        console.log('doing thing...');
+
+        doThing().
+        then(function (value) {
+            console.log('doThing() returned ' + value);
+            return 'one two three';
+        }).
+        then(function (value) {
+            console.log(value);
+            return value.charAt(0);
+        }).
+        then(alertThing);
+
+    </script>
+</head>
+<body>
+
+</body>
+</html>
