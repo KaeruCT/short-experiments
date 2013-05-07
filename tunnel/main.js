@@ -62,6 +62,7 @@ window.addEventListener('click', function (e) {
 });
 
 function onScroll(e) {
+    e.preventDefault();
     var wheelData = e.detail ? e.detail * -1 : e.wheelDelta / 40; // http://tech.pro/tutorial/705/javascript-tutorial-the-scroll-wheel
     scrollWheelFactor += wheelData * 0.1;
     setDimensions();

@@ -60,8 +60,8 @@
         c.height = window.innerHeight;
 
         document.getElementById('cover').addEventListener('mousemove', function (e) {
-            tabcin.change_rate(e.y);
-            tabcin.change_color(e.x);
+            tabcin.change_rate(e.clientY);
+            tabcin.change_color(e.clientX);
         });
 
         tabcin.init(c);

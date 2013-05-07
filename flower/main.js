@@ -55,8 +55,8 @@ window.addEventListener('mousemove', function (e) {
         maxn = 50,
         maxinc = 0.03, mininc = 0.003;
 
-    n = maxn - maxn*(Math.abs(e.x-w2)/w2);
-    inc = Math.max(mininc, maxinc*(Math.abs(e.y-h2)/h2));
+    n = maxn - maxn*(Math.abs(e.clientX-w2)/w2);
+    inc = Math.max(mininc, maxinc*(Math.abs(e.clientY-h2)/h2));
 });
 
 window.addEventListener('click', function (e) {

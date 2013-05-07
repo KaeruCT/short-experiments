@@ -61,8 +61,8 @@
         c.height = window.innerHeight;
 
         cover.addEventListener('mousemove', function (e) {
-            tabcin.change_rate(e.x);
-            tabcin.change_color(e.y);
+            tabcin.change_rate(e.clientX);
+            tabcin.change_color(e.clientY);
         });
 
         cover.addEventListener('click', function (e) {
