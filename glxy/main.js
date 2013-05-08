@@ -20,7 +20,7 @@ var canvas, ctx, ctx2,
 	particles = [],
 
 	mdown = false, prevx = 0, prevy = 0,
-	initx = 0, inity = 0,
+	initx = 0, inity = 0;
 
 	pause = false,
 	trails = false
@@ -123,7 +123,6 @@ function mousemove(e) {
 function drawLoop () {
 	var p, p2,
 		dx, dy, dr,
-		cx = 0, cy = 0,
 		k = j = i = 0;
 
 	if (!pause) {
@@ -166,11 +165,17 @@ function drawLoop () {
 			ctx2.beginPath();
 			ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
 			ctx2.fill();
+
+			if (i == 1) {
+				ctx.translate(cx, cy);
+			}
 		}
 
         p = particles[i++];
 
     } while (i <= particles.length);
+
+    ctx.restore();
 
 	if (mdown) {
 		// draw line
