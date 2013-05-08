@@ -3,23 +3,28 @@
 <head>
     <script type="text/javascript" src="main.js"></script>
     <style>
-        body {
+        body, html {
             background-color: #111222;
+            margin: 0;
+            padding: 0;
             cursor: none;
         }
-        #main-canvas {
+        #main-canvas, #trail-canvas {
             margin: 0 auto;
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         #help {
-			text-align: right;
+			text-align: left;
 			color: #aaa;
 			font-family: "Droid Sans", "DejaVu Sans", "Segoe UI", "Tahoma", sans-serif;
 			position: absolute;
 			bottom: 0;
-			right: 0;
-			padding: 20px;
+			left: 0;
+			padding: 8px;
 			font-size: 12px;
 			-webkit-touch-callout: none;
 			-webkit-user-select: none;
@@ -32,9 +37,16 @@
 </head>
 <body>
     <div id="help">
-		Hold and release to create a particle with momentum.<br>
-		Scroll to increase/decrease particle size.
+		<b>Particles</b>: <span id="particle-count">0</span><br>
+		Hold and release to create particles.<br>
+		Scroll to increase/decrease particle size.<br>
+	    <b>Q</b>: add particles randomly<br>
+	    <b>T</b>: toggle trails<br>
+	    <b>H</b>: toggle this text<br>
+	    <b>P</b>: toggle pause<br>
+		<b>R</b>: reset<br>
     </div>
+    <canvas id="trail-canvas"></canvas>
     <canvas id="main-canvas"></canvas>
 </body>
 </html>
