@@ -165,10 +165,6 @@ function drawLoop () {
 			ctx2.beginPath();
 			ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
 			ctx2.fill();
-
-			if (i == 1) {
-				ctx.translate(cx, cy);
-			}
 		}
 
         p = particles[i++];
