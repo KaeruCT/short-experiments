@@ -12,7 +12,7 @@ var canvas, ctx, ctx2,
     partcount,
 
     pmin = 2,
-    G = 0.03,
+    G = 0.01,
     sG = G*10,
 
     psize = pmin,
@@ -23,7 +23,7 @@ var canvas, ctx, ctx2,
     initx = 0, inity = 0;
 
     pause = false,
-    collision = true,
+    collision = false,
     trails = false
     ;
 
@@ -38,13 +38,19 @@ function Particle(p) {
 	}
 
     this.update = function () {
+		//var max = 100, max2 = Math.pow(max, 2),
+			//dx, dy
+			//s = Math.sqrt(Math.pow(this.dx, 2) + Math.pow(this.dy, 2));
+//
+		//if (s > max) {
+			//dx = this.dx;
+			//dy = this.dy;
+			//this.dx = Math.sqrt(max2 - Math.pow(this.dy, 2)) || 0;
+			//this.dy = Math.sqrt(max2 - Math.pow(this.dy, 2)) || 0;
+		//}
         this.x += this.dx;
         this.y += this.dy;
     };
-
-    this.shrink = function () {
-		this.r = Math.max(this.r-1, pmin);
-	};
 }
 
 function addParticle(p) {
@@ -142,45 +148,61 @@ function mousemove(e) {
 }
 
 function drawLoop () {
-    var p, p2,
+    var p, p2, adx, ady,
         dx, dy, force,
+        mtd,
         k = 0, j = 0, i = 0;
 
     if (!pause) {
         // physics magic
         for (; j < particles.length; j += 1) {
             p = particles[j];
+
             for (k = 0; k < particles.length; k += 1) {
                 if (j !== k) {
                     p2 = particles[k];
                     dx = p2.x - p.x;
 					dy = p2.y - p.y;
+					d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
 
                     if (collision && Math.pow(dx, 2) + Math.pow(dy, 2) < Math.pow(p.r + p2.r, 2)) {
 						// collision
-						p2.dx = -p2.dx/2;
-						p2.dy = -p2.dy/2;
-						p.dx = -p.dx/2;
-						p.dy = -p.dy/2;
-						p.update();
-						p2.update();
-						p.shrink();
-						p2.shrink();
+						mtd = (p.r + p2.r - d)/d;
+
+						p2.dx += dx * mtd / p2.r;
+						p2.dy += dy * mtd / p2.r;
+						p.dx -= dx * mtd / p.r;
+						p.dy -= dy * mtd / p.r;
+						//p.update();
+						//p2.update();
 						// update smallest particle to keep it from getting stuck
 						(p2.r > p.r ? p : p2).update();
                     } else {
 						// "gravity"
+						d = p.r*p2.r;
+						adx = Math.abs(dx);
+						ady = Math.abs(dy);
+						if (adx < d) {
+							dx *= d/adx;
+							adx = Math.abs(dx);
+						}
+						if (ady < d) {
+							dy *= d/ady;
+							ady = Math.abs(dy);
+						}
 
-						d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
-						force = G * (Math.sqrt(p2.r) / Math.pow(p.r, 2) / d);
+						force = G * Math.pow(p2.r, 3);
 
-						p.dx += dx * force;
-						p.dy += dy * force;
+						p.dx += force * dx / (adx * Math.pow(dy, 2));
+						p.dy += force * dy / (ady * Math.pow(dx, 2));
 					}
                 }
             }
-            p.update();
         }
+
+        for (j = 0; j < particles.length; j += 1) {
+			particles[j].update();
+		}
     }
 
     // drawing magic
