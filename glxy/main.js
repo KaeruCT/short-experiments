@@ -12,7 +12,7 @@ var canvas, ctx, ctx2,
     partcount,
 
     pmin = 2,
-    G = 0.01,
+    G = 0.03,
     sG = G*10,
 
     psize = pmin,
@@ -23,26 +23,33 @@ var canvas, ctx, ctx2,
     initx = 0, inity = 0;
 
     pause = false,
+    collision = true,
     trails = false
     ;
 
 function Particle(p) {
+	var i = 0, prop,
+		props = ['x', 'y', 'dx', 'dy', 'r'];
+
     p = p || {};
-    this.x = p.x || 0;
-    this.y = p.y || 0;
-    this.r = p.r || 0;
-    this.dx = p.dx || 0;
-    this.dy = p.dy || 0;
+    for (i in props) {
+		prop = props[i];
+		this[prop] = p[prop] || 0;
+	}
 
     this.update = function () {
         this.x += this.dx;
         this.y += this.dy;
     };
+
+    this.shrink = function () {
+		this.r = Math.max(this.r-1, pmin);
+	};
 }
 
 function addParticle(p) {
     particles.push(p);
-    partcount.innerText = particles.length;
+    partcount.textContent = particles.length;
 }
 
 function save() {
@@ -61,9 +68,12 @@ function clear(ctx) {
 
 function keydown(e) {
     switch(e.keyCode) {
+    case 67: //C
+        collision = !collision;
+        break;
     case 82: //R
         particles = [];
-        partcount.innerText = 0;
+        partcount.textContent = 0;
         clear(ctx2);
         break;
     case 72: //H
@@ -144,13 +154,29 @@ function drawLoop () {
                 if (j !== k) {
                     p2 = particles[k];
                     dx = p2.x - p.x;
-                    dy = p2.y - p.y;
+					dy = p2.y - p.y;
 
-                    d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
-                    force = (Math.sqrt(p2.r) / p.r * G / d);
+                    if (collision && Math.pow(dx, 2) + Math.pow(dy, 2) < Math.pow(p.r + p2.r, 2)) {
+						// collision
+						p2.dx = -p2.dx/2;
+						p2.dy = -p2.dy/2;
+						p.dx = -p.dx/2;
+						p.dy = -p.dy/2;
+						p.update();
+						p2.update();
+						p.shrink();
+						p2.shrink();
+						// update smallest particle to keep it from getting stuck
+						(p2.r > p.r ? p : p2).update();
+                    } else {
+						// "gravity"
 
-                    p.dx += dx * force;
-                    p.dy += dy * force;
+						d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
+						force = G * (Math.sqrt(p2.r) / Math.pow(p.r, 2) / d);
+
+						p.dx += dx * force;
+						p.dy += dy * force;
+					}
                 }
             }
             p.update();
