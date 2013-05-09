@@ -14,7 +14,7 @@ var canvas, ctx, ctx2,
     pmin = 2,
     pmax = 70,
     G = 0.1,
-    sG = G*5,
+    sG = G * 0.5,
 
     psize = pmin,
     mousep = new Particle({r: psize}),
