@@ -12,57 +12,60 @@ var canvas, ctx, ctx2,
     partcount,
 
     pmin = 2,
-    G = 0.01,
-    sG = G*10,
+    pmax = 70,
+    G = 0.1,
+    sG = G*5,
 
     psize = pmin,
-    mousep = new Particle(0, 0, psize),
+    mousep = new Particle({r: psize}),
     particles = [],
 
     mdown = false, prevx = 0, prevy = 0,
     initx = 0, inity = 0;
 
-    pause = false,
-    collision = false,
-    trails = false
-    ;
+    flags = {
+        pause: false,
+        collision: false,
+        trails: true,
+        help: true
+    };
 
 function Particle(p) {
-	var i = 0, prop,
-		props = ['x', 'y', 'dx', 'dy', 'r'];
+    var i = 0, prop,
+        props = ['x', 'y', 'dx', 'dy', 'r', 'dead'];
 
     p = p || {};
     for (i in props) {
-		prop = props[i];
-		this[prop] = p[prop] || 0;
-	}
-
-    this.update = function () {
-		//var max = 100, max2 = Math.pow(max, 2),
-			//dx, dy
-			//s = Math.sqrt(Math.pow(this.dx, 2) + Math.pow(this.dy, 2));
-//
-		//if (s > max) {
-			//dx = this.dx;
-			//dy = this.dy;
-			//this.dx = Math.sqrt(max2 - Math.pow(this.dy, 2)) || 0;
-			//this.dy = Math.sqrt(max2 - Math.pow(this.dy, 2)) || 0;
-		//}
-        this.x += this.dx;
-        this.y += this.dy;
-    };
+        prop = props[i];
+        this[prop] = p[prop] || 0;
+    }
+    return this;
 }
+
+Particle.prototype.update = function () {
+    this.x += this.dx;
+    this.y += this.dy;
+};
+
+Particle.prototype.kill = function () {
+    this.dead = true;
+};
 
 function addParticle(p) {
     particles.push(p);
     partcount.textContent = particles.length;
 }
 
+function removeParticle(i) {
+    particles.splice(i, 1);
+    partcount.textContent = particles.length;
+}
+
 function save() {
-	var strurl = window.location.href;
-	strurl = strurl.replace(/#.+$/, '');
-	strurl += "#" + lzw_encode(JSON.stringify(particles));
-	window.prompt('Copy/paste the following URL to share your system', strurl);
+    var strurl = window.location.href;
+    strurl = strurl.replace(/#.+$/, '');
+    strurl += "#" + lzw_encode(JSON.stringify(particles));
+    window.prompt('Copy/paste the following URL to share your system', strurl);
 }
 
 function clear(ctx) {
@@ -75,7 +78,7 @@ function clear(ctx) {
 function keydown(e) {
     switch(e.keyCode) {
     case 67: //C
-        collision = !collision;
+        toggle('collision');
         break;
     case 82: //R
         particles = [];
@@ -83,13 +86,14 @@ function keydown(e) {
         clear(ctx2);
         break;
     case 72: //H
-        var help = document.getElementById('help'),
+        var help = document.getElementById('help-box'),
             d = help.style.display;
 
+        toggle('help');
         help.style.display = (d === '' || d === 'block' ? 'none' : 'block');
         break;
     case 80: //P
-        pause = !pause;
+        toggle('pause');
         break;
     case 81: //Q
         var i = 0, p;
@@ -103,19 +107,30 @@ function keydown(e) {
         }
         break;
     case 83: //S
-		save();
-		break;
+        save();
+        break;
 
     case 84: //T
-        trails = !trails;
+        toggle('trails');
         clear(ctx2);
         break;
     }
 }
 
+function toggle(arg) {
+    var d = document.getElementById(arg);
+    flags[arg] = !flags[arg];
+
+    if (d) {
+        d.style.color = flags[arg] ? '#964' : 'inherit';
+    }
+}
+
 function scroll(e) {
-    psize += (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.4;
-    psize = Math.max(pmin, psize);
+    var d = (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.4;
+    d = d > 0 ? d : -1/d;
+    psize *= d;
+    psize = Math.min(pmax, Math.max(pmin, psize));
     mousemove(e);
 }
 
@@ -151,58 +166,76 @@ function drawLoop () {
     var p, p2, adx, ady,
         dx, dy, force,
         mtd,
-        k = 0, j = 0, i = 0;
+        k, j, i = 0;
 
-    if (!pause) {
+    if (!flags.pause) {
         // physics magic
-        for (; j < particles.length; j += 1) {
+        for (j = 0; j < particles.length; j += 1) {
             p = particles[j];
+            if (p.dead) continue;
 
             for (k = 0; k < particles.length; k += 1) {
-                if (j !== k) {
-                    p2 = particles[k];
-                    dx = p2.x - p.x;
-					dy = p2.y - p.y;
-					d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
+                p2 = particles[k];
+                if (p2.dead || j === k) continue;
 
-                    if (collision && Math.pow(dx, 2) + Math.pow(dy, 2) < Math.pow(p.r + p2.r, 2)) {
-						// collision
-						mtd = (p.r + p2.r - d)/d;
+                dx = p2.x - p.x;
+                dy = p2.y - p.y;
+                d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 
-						p2.dx += dx * mtd / p2.r;
-						p2.dy += dy * mtd / p2.r;
-						p.dx -= dx * mtd / p.r;
-						p.dy -= dy * mtd / p.r;
-						//p.update();
-						//p2.update();
-						// update smallest particle to keep it from getting stuck
-						(p2.r > p.r ? p : p2).update();
+                if (Math.pow(dx, 2) + Math.pow(dy, 2) < Math.pow(p.r + p2.r, 2)) {
+                    if (flags.collision) {
+                        // collision
+                        mtd = (p.r + p2.r - d)/(d||1);
+
+                        p2.dx += dx * mtd / p2.r;
+                        p2.dy += dy * mtd / p2.r;
+                        p.dx -= dx * mtd / p.r;
+                        p.dy -= dy * mtd / p.r;
+                        //p.update();
+                        //p2.update();
+                        // update smallest particle to keep it from getting stuck
+                        (p2.r > p.r ? p : p2).update();
                     } else {
-						// "gravity"
-						d = p.r*p2.r;
-						adx = Math.abs(dx);
-						ady = Math.abs(dy);
-						if (adx < d) {
-							dx *= d/adx;
-							adx = Math.abs(dx);
-						}
-						if (ady < d) {
-							dy *= d/ady;
-							ady = Math.abs(dy);
-						}
+                        // kill smaller particle
+                        if (p.r > p2.r) {
+                            //p.r += Math.sqrt(p2.r/2);
+                            p2.kill();
+                            break;
+                        } else {
+                            //p2.r += Math.sqrt(p.r/2);
+                            p.kill();
+                        }
+                    }
+                } else {
+                    // "gravity"
+                    d = p.r*p2.r;
+                    adx = Math.abs(dx);
+                    ady = Math.abs(dy);
+                    if (adx < d) {
+                        dx *= d/(adx||1);
+                        adx = Math.abs(dx);
+                    }
+                    if (ady < d) {
+                        dy *= d/(ady||1);
+                        ady = Math.abs(dy);
+                    }
 
-						force = G * Math.pow(p2.r, 3);
+                    force = G * Math.pow(p2.r, 3) / Math.sqrt(p.r);
 
-						p.dx += force * dx / (adx * Math.pow(dy, 2));
-						p.dy += force * dy / (ady * Math.pow(dx, 2));
-					}
+                    p.dx += force * dx / (adx * Math.pow(dy, 2));
+                    p.dy += force * dy / (ady * Math.pow(dx, 2));
                 }
             }
         }
 
-        for (j = 0; j < particles.length; j += 1) {
-			particles[j].update();
-		}
+        for (j = particles.length-1; j >= 0; j -= 1) {
+            p = particles[j];
+            if (p.dead) {
+                removeParticle(j);
+            } else {
+                p.update();
+            }
+        }
     }
 
     // drawing magic
@@ -221,7 +254,7 @@ function drawLoop () {
             6.28);
         ctx.fill();
 
-        if (i > 0 && trails) {
+        if (i > 0 && flags.trails) {
             // trail
             ctx2.beginPath();
             ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
@@ -263,18 +296,23 @@ window.onload = function () {
     ctx2.fillStyle = '#555';
     ctx2.strokeStyle = '#555';
 
-    if (window.location.hash) {
-		try {
-			var json = lzw_decode(window.location.hash.replace(/^#/, "")),
-				plist = JSON.parse(json);
+    for (var p in flags) {
+        toggle(p);
+        toggle(p);
+    }
 
-			for (var i = 0; i < plist.length; i += 1) {
-				particles.push(new Particle(plist[i]));
-			}
-		} catch (e) {
-			console.log(json,e);
-		}
-	}
+    if (window.location.hash) {
+        try {
+            var json = lzw_decode(window.location.hash.replace(/^#/, "")),
+                plist = JSON.parse(json);
+
+            for (var i = 0; i < plist.length; i += 1) {
+                particles.push(new Particle(plist[i]));
+            }
+        } catch (e) {
+            console.log(json,e);
+        }
+    }
 
     drawLoop();
 };
