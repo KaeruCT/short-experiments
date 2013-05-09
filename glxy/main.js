@@ -166,6 +166,7 @@ function drawLoop () {
     var p, p2, adx, ady,
         dx, dy, force,
         mtd,
+        mp, mp2, theta, force, fx, fy,
         k, j, i = 0;
 
     if (!flags.pause) {
@@ -208,22 +209,17 @@ function drawLoop () {
                     }
                 } else {
                     // "gravity"
-                    d = p.r*p2.r;
-                    adx = Math.abs(dx);
-                    ady = Math.abs(dy);
-                    if (adx < d) {
-                        dx *= d/(adx||1);
-                        adx = Math.abs(dx);
-                    }
-                    if (ady < d) {
-                        dy *= d/(ady||1);
-                        ady = Math.abs(dy);
-                    }
+                    mp = 0.1 * Math.pow(p.r, 3);
+                    mp2 = 0.1 * Math.pow(p2.r, 3);
 
-                    force = G * Math.pow(p2.r, 3) / Math.sqrt(p.r);
+                    // angle between both particles relative to x-axis
+                    theta = Math.atan2(p2.y - p.y, p2.x - p.x);
+                    force = G * mp * mp2 / Math.pow(d, 2);
+                    fx = Math.cos(theta) * force;
+                    fy = Math.sin(theta) * force;
 
-                    p.dx += force * dx / (adx * Math.pow(dy, 2));
-                    p.dy += force * dy / (ady * Math.pow(dx, 2));
+                    p.dx += fx / mp;
+                    p.dy += fy / mp;
                 }
             }
         }
@@ -293,8 +289,8 @@ window.onload = function () {
     ctx.strokeStyle = '#999';
 
     ctx2 = c2.getContext('2d');
-    ctx2.fillStyle = '#555';
-    ctx2.strokeStyle = '#555';
+    ctx2.fillStyle = '#71AAB9';
+    ctx2.strokeStyle = '#71AAB9';
 
     for (var p in flags) {
         toggle(p);
