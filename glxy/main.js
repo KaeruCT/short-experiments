@@ -42,6 +42,17 @@ function Particle(p) {
     return this;
 }
 
+Particle.prototype = {
+    get r() {
+        return this._r;
+    },
+
+    set r(r) {
+        this._r = r;
+        this.mass = 0.1 * Math.pow(this.r, 2);
+    }
+}
+
 Particle.prototype.update = function () {
     this.x += this.dx;
     this.y += this.dy;
@@ -166,7 +177,7 @@ function drawLoop () {
     var p, p2, adx, ady,
         dx, dy, force,
         mtd,
-        mp, mp2, theta, force, fx, fy,
+        theta, force, fscale, fx, fy,
         k, j, i = 0;
 
     if (!flags.pause) {
@@ -199,27 +210,23 @@ function drawLoop () {
                     } else {
                         // kill smaller particle
                         if (p.r > p2.r) {
-                            //p.r += Math.sqrt(p2.r/2);
+                            p.r += Math.sqrt(p2.r/2);
                             p2.kill();
                             break;
                         } else {
-                            //p2.r += Math.sqrt(p.r/2);
+                            p2.r += Math.sqrt(p.r/2);
                             p.kill();
                         }
                     }
                 } else {
                     // "gravity"
-                    mp = 0.1 * Math.pow(p.r, 3);
-                    mp2 = 0.1 * Math.pow(p2.r, 3);
+                    force = G * p.mass * p2.mass / Math.pow(d, 2);
+                    fscale = force / d;
+                    fx = fscale * dx;
+                    fy = fscale * dy;
 
-                    // angle between both particles relative to x-axis
-                    theta = Math.atan2(p2.y - p.y, p2.x - p.x);
-                    force = G * mp * mp2 / Math.pow(d, 2);
-                    fx = Math.cos(theta) * force;
-                    fy = Math.sin(theta) * force;
-
-                    p.dx += fx / mp;
-                    p.dy += fy / mp;
+                    p.dx += fx / p.mass;
+                    p.dy += fy / p.mass;
                 }
             }
         }
