@@ -14,7 +14,7 @@ var canvas, ctx, ctx2,
     pmin = 2,
     pmax = 70,
     G = 0.1,
-    sG = G*5,
+    sG = G * 0.5,
 
     psize = pmin,
     mousep = new Particle({r: psize}),
@@ -40,6 +40,17 @@ function Particle(p) {
         this[prop] = p[prop] || 0;
     }
     return this;
+}
+
+Particle.prototype = {
+    get r() {
+        return this._r;
+    },
+
+    set r(r) {
+        this._r = r;
+        this.mass = 0.1 * Math.pow(this.r, 2);
+    }
 }
 
 Particle.prototype.update = function () {
@@ -166,6 +177,7 @@ function drawLoop () {
     var p, p2, adx, ady,
         dx, dy, force,
         mtd,
+        theta, force, fscale, fx, fy,
         k, j, i = 0;
 
     if (!flags.pause) {
@@ -198,32 +210,23 @@ function drawLoop () {
                     } else {
                         // kill smaller particle
                         if (p.r > p2.r) {
-                            //p.r += Math.sqrt(p2.r/2);
+                            p.r += Math.sqrt(p2.r/2);
                             p2.kill();
                             break;
                         } else {
-                            //p2.r += Math.sqrt(p.r/2);
+                            p2.r += Math.sqrt(p.r/2);
                             p.kill();
                         }
                     }
                 } else {
                     // "gravity"
-                    d = p.r*p2.r;
-                    adx = Math.abs(dx);
-                    ady = Math.abs(dy);
-                    if (adx < d) {
-                        dx *= d/(adx||1);
-                        adx = Math.abs(dx);
-                    }
-                    if (ady < d) {
-                        dy *= d/(ady||1);
-                        ady = Math.abs(dy);
-                    }
+                    force = G * p.mass * p2.mass / Math.pow(d, 2);
+                    fscale = force / d;
+                    fx = fscale * dx;
+                    fy = fscale * dy;
 
-                    force = G * Math.pow(p2.r, 3) / Math.sqrt(p.r);
-
-                    p.dx += force * dx / (adx * Math.pow(dy, 2));
-                    p.dy += force * dy / (ady * Math.pow(dx, 2));
+                    p.dx += fx / p.mass;
+                    p.dy += fy / p.mass;
                 }
             }
         }
@@ -293,8 +296,8 @@ window.onload = function () {
     ctx.strokeStyle = '#999';
 
     ctx2 = c2.getContext('2d');
-    ctx2.fillStyle = '#555';
-    ctx2.strokeStyle = '#555';
+    ctx2.fillStyle = '#71AAB9';
+    ctx2.strokeStyle = '#71AAB9';
 
     for (var p in flags) {
         toggle(p);
