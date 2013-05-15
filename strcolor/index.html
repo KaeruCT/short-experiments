@@ -1,0 +1,114 @@
+<!DOCTYPE>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="liberation-mono-fontfacekit/stylesheet.css">
+<style type="text/css">
+    body {
+        background: #111;
+        padding: 0;
+        margin: 0;
+        overflow-x: hidden;
+        font-size: 16px;
+    }
+    #input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        color: #c6c6c6;
+        outline: 0;
+        font-family: 'LiberationMonoRegular', monospace;
+        font-size: 1em;
+        line-height: 24px;
+        letter-spacing: 0;
+        vertical-align: middle;
+        overflow-y: hidden;
+    }
+    #result {
+
+    }
+    .color {
+        float: left;
+        width: 30px;
+        height: 24px;
+    }
+    .break {
+        height: 24px;
+    }
+</style>
+</head>
+<body>
+    <textarea placeholder="enter some text" id="input"></textarea>
+    <div id="container">
+        <div id="result">
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+    function strToHexArr(str) {
+        var i, j,
+            lines = str.split("\n"), l,
+            hex, d,
+            result = [];
+
+        for (l in lines) {
+            for (i = 0; i < lines[l].length; i += 3) {
+                hex = "";
+                for (j = 0; j < 3; j += 1) {
+                    d = (lines[l].charCodeAt(i+j) % 255);
+                    hex += d ? d.toString(16) : "11";
+                }
+
+                result.push(hex);
+            }
+
+            if (l < lines.length-1) {
+                result.push("n");
+            }
+        }
+
+        return result;
+    }
+
+    function generateDivs(str) {
+        var container = document.getElementById("result"),
+            colors = strToHexArr(str),
+            i, div;
+
+        container.innerHTML = "";
+
+        for (i in colors) {
+            div = document.createElement("div");
+
+            if (colors[i] === "n") {
+                div.setAttribute("class", "break");
+            } else {
+                div.setAttribute("class", "color");
+                div.style.backgroundColor = "#" + colors[i];
+            }
+            container.appendChild(div);
+        }
+    }
+
+    function update () {
+        var db = document.body,
+            dde = document.documentElement,
+            docHeight = Math.max(db.scrollHeight, dde.scrollHeight, db.offsetHeight, dde.offsetHeight, db.clientHeight, dde.clientHeight)
+
+        this.style.width = document.width;
+        this.style.height = docHeight;
+        generateDivs(this.value);
+    }
+
+    var input = document.getElementById("input");
+
+    input.addEventListener("keyup", update);
+
+    input.focus();
+
+</script>
+</html>
