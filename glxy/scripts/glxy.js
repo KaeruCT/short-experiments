@@ -1,4 +1,4 @@
-define(["./particle", "./options"], function (Particle, options) {
+define(["./particle", "./color", "./options"], function (Particle, Color, options) {
 	var
 	canvas, // main canvas
 	ctx, // main canvas context
@@ -13,6 +13,7 @@ define(["./particle", "./options"], function (Particle, options) {
 
     protoParticle = new Particle({r: minRadius}),
     particles = [],
+    particleColors = {},
 
     mouseDown = false,
     prevx = 0, prevy = 0,
@@ -172,11 +173,29 @@ define(["./particle", "./options"], function (Particle, options) {
 
 	function drawParticles() {
 		var p = protoParticle,
-			i = 0;
+			i = 0,
+            c;
 
 		clear(ctx);
 
 		do {
+            // mass-based particle color
+            // FIXME: changing the fillStyle is inefficient
+            if (p.r < 5) {
+                c = particleColors.small;
+            } else if (p.r <= 35) {
+                console.log(p.r);
+                c = particleColors.small.interpolate(particleColors.medium, (p.r - 5) / 35);
+            } else if (p.r <= 70) {
+                c = particleColors.medium.interpolate(particleColors.large, (p.r - 35) / 70);
+            } else if (p.r <= 100) {
+                c = particleColors.large.interpolate(particleColors.huge, (p.r - 70) / 100);
+            } else {
+                c = particleColors.huge;
+            }
+
+            ctx.fillStyle = c.toString();
+
 			// particle
 			ctx.beginPath();
 			ctx.arc(
@@ -244,8 +263,15 @@ define(["./particle", "./options"], function (Particle, options) {
 			ctx.strokeStyle = '#999';
 
 			ctx2 = c2.getContext('2d');
-			ctx2.fillStyle = '#71AAB9';
-			ctx2.strokeStyle = '#71AAB9';
+			ctx2.fillStyle = '#eee';
+			ctx2.strokeStyle = '#eee';
+            
+            particleColors = {
+                small: new Color({r: 150, g: 205, b: 205}),
+                medium: new Color({r: 255, g: 240, b: 70}),
+                large: new Color({r: 255, g: 90, b: 70}),
+                huge: new Color({r: 60, g: 30, b: 70})
+            };
 
 			options.init({
 				pause: false,
