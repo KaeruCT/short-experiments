@@ -184,7 +184,6 @@ define(["./particle", "./color", "./options"], function (Particle, Color, option
             if (p.r < 5) {
                 c = particleColors.small;
             } else if (p.r <= 35) {
-                console.log(p.r);
                 c = particleColors.small.interpolate(particleColors.medium, (p.r - 5) / 35);
             } else if (p.r <= 70) {
                 c = particleColors.medium.interpolate(particleColors.large, (p.r - 35) / 70);
