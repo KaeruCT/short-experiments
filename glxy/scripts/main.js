@@ -18,7 +18,13 @@ require(["./glxy"], function (glxy) {
 		mainCanvas: $d("main-canvas"),
 		trailCanvas: $d("trail-canvas"),
 		particleCount: $d("particle-count"),
-		help: $d("help-box")
+		help: $d("help-box"),
+		options: {
+			pause: false,
+			collision: true,
+			trails: false,
+			help: true
+		}
 	});
 
 	glxy.start();

@@ -3,8 +3,11 @@ define(function () {
 
 	return {
 		toggle: function (arg) {
+			this.set(arg, !this.get(arg));
+		},
+		set: function (arg, value) {
 			var d = document.getElementById(arg);
-			flags[arg] = !flags[arg];
+			flags[arg] = value;
 
 			if (d) {
 				d.setAttribute('class', flags[arg] ? 'enabled' : '');

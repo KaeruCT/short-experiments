@@ -1,10 +1,13 @@
-define(["./particle", "./color", "./options"], function (Particle, Color, options) {
-	var
-	canvas, // main canvas
-	ctx, // main canvas context
-	ctx2, // trail canvas context
+define(["./particle", "./color", "./options", "./event"],
+    function (Particle, Color, options, ev) {
+    var
+    canvas, // main canvas
+    trailCanvas, // trail canvas
+    ctx, // main canvas context
+    ctx2, // trail canvas context
     partcount, // element that displays particle count
     help, // element that displays help
+    locked = false, // whether the pointer is locked
 
     minRadius = 2,
     maxRadius = 70,
@@ -16,169 +19,226 @@ define(["./particle", "./color", "./options"], function (Particle, Color, option
     particleColors = {},
 
     mouseDown = false,
-    prevx = 0, prevy = 0,
-    initx = 0, inity = 0;
+    spaceDown =false,
+    initx = 0, inity = 0,
+    panx = 0, pany = 0;
 
-	function addParticle(p) {
-		particles.push(p);
-		partcount.textContent = particles.length;
-	}
+    function addParticle(p) {
+        particles.push(p);
+        partcount.textContent = particles.length;
+    }
 
-	function removeParticle(i) {
-		particles.splice(i, 1);
-		partcount.textContent = particles.length;
-	}
+    function removeParticle(i) {
+        particles.splice(i, 1);
+        partcount.textContent = particles.length;
+    }
 
-	function clear(ctx) {
-		ctx.save();
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		ctx.restore();
-	}
+    function clear(ctx) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
 
-	function keydown(e) {
-		switch(e.keyCode) {
-		case 67: //C
-			options.toggle('collision');
+    function keydown(e) {
+        switch(e.keyCode) {
+		case 32: //SPACE
+			spaceDown = true;
 			break;
-		case 82: //R
-			particles = [];
-			partcount.textContent = 0;
-			clear(ctx2);
-			break;
-		case 72: //H
-			var d = help.style.display;
+        case 67: //C
+            options.toggle('collision');
+            break;
+        case 82: //R
+            particles = [];
+            partcount.textContent = 0;
+            clear(ctx2);
+            break;
+        case 72: //H
+            var d = help.style.display;
 
-			options.toggle('help');
-			help.style.display = (d === '' || d === 'block' ? 'none' : 'block');
-			break;
+            options.toggle('help');
+            help.style.display = (d === '' || d === 'block' ? 'none' : 'block');
+            break;
 		case 80: //P
 			options.toggle('pause');
 			break;
-		case 81: //Q
-			var i = 0, p;
-			for (; i < 10; i += 1) {
-				p = new Particle({
-					x: Math.random() * canvas.width,
-					y: Math.random() * canvas.height,
-					r: minRadius + Math.random() * 4
-				});
-				addParticle(p);
-			}
-			break;
+        case 81: //Q
+            var i = 0, p;
+            for (; i < 10; i += 1) {
+                p = new Particle({
+                    x: (Math.random() * canvas.width) - panx,
+                    y: (Math.random() * canvas.height) - pany,
+                    r: minRadius + Math.random() * 6
+                });
+                addParticle(p);
+            }
+            break;
 
-		case 84: //T
-			options.toggle('trails');
-			clear(ctx2);
+        case 84: //T
+            options.toggle('trails');
+            clear(ctx2);
+            break;
+        }
+    }
+
+    function keyup(e) {
+		switch (e.keyCode) {
+		case 32: //SPACE
+			spaceDown = false;
 			break;
 		}
 	}
 
-	function scroll(e) {
-		var d = (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.4,
-			psize = protoParticle.r;
+    function scroll(e) {
+		if (locked) {
+			var d = (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.4,
+				psize = protoParticle.r;
 
-		d = d > 0 ? d : -1/d;
-		psize *= d;
-		psize = Math.min(maxRadius, Math.max(minRadius, psize));
-		protoParticle.r = psize;
-	}
-
-	function mousedown(e) {
-		mouseDown = true;
-		protoParticle.dx = 0;
-		protoParticle.dy = 0;
-		prevx = e.clientX;
-		prevy = e.clientY;
-		initx = prevx;
-		inity = prevy;
-	}
-
-	function mouseup(e) {
-		var p = new Particle(protoParticle);
-		addParticle(p);
-		mouseDown = false;
-	}
-
-	function mousemove(e) {
-		protoParticle.x = e.clientX;
-		protoParticle.y = e.clientY;
-		if (mouseDown) {
-			protoParticle.dx += (prevx - e.clientX) * sG;
-			protoParticle.dy += (prevy - e.clientY) * sG;
-			prevx = e.clientX;
-			prevy = e.clientY;
+			d = d > 0 ? d : -1/d;
+			psize *= d;
+			psize = Math.min(maxRadius, Math.max(minRadius, psize));
+			protoParticle.r = psize;
 		}
-	}
+    }
 
-	function updateParticles() {
-		var p, p2,  dx, dy,
-			theta, force, fscale,
-			k, j, mtd;
+    function mousedown(e) {
+        if (locked && !spaceDown) {
+            mouseDown = true;
+            protoParticle.dx = 0;
+            protoParticle.dy = 0;
+            initx = protoParticle.x;
+            inity = protoParticle.y;
+        }
+    }
 
-		for (j = 0; j < particles.length; j += 1) {
-			p = particles[j];
-			if (p.dead) continue;
-
-			for (k = 0; k < particles.length; k += 1) {
-				p2 = particles[k];
-				if (p2.dead || j === k) continue;
-
-				dx = p2.x - p.x;
-				dy = p2.y - p.y;
-				d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-
-				if (p.collidesWith(p2)) {
-					if (options.get('collision')) {
-						// collision
-						mtd = (p.r + p2.r - d)/(d||1);
-
-						p2.dx += dx * mtd / p2.r;
-						p2.dy += dy * mtd / p2.r;
-						p.dx -= dx * mtd / p.r;
-						p.dy -= dy * mtd / p.r;
-
-						// update smallest particle to keep it from getting stuck
-						(p2.r > p.r ? p : p2).update();
-					} else {
-						// kill smaller particle
-						if (p.r > p2.r) {
-							p.r += Math.sqrt(p2.r/2);
-							p2.kill();
-							break;
-						} else {
-							p2.r += Math.sqrt(p.r/2);
-							p.kill();
-						}
-					}
-				} else {
-					// "gravity"
-					force = G * p.mass * p2.mass / Math.pow(d, 2);
-					fscale = force / d;
-					p.dx += fscale * dx / p.mass;
-					p.dy += fscale * dy / p.mass;
+    function mousemove(e) {
+        if (locked) {
+			if (spaceDown) {
+				panx += e.dx;
+				pany += e.dy;
+			} else {
+				protoParticle.x += e.dx;
+				protoParticle.y += e.dy;
+				if (mouseDown) {
+					protoParticle.dx -= (e.dx) * sG;
+					protoParticle.dy -= (e.dy) * sG;
 				}
 			}
-		}
+        }
+    }
 
-		for (j = particles.length-1; j >= 0; j -= 1) {
-			p = particles[j];
-			if (p.dead) {
-				removeParticle(j);
-			} else {
-				p.update();
+    function mouseup(e) {
+        if (locked && !spaceDown) {
+            var p = new Particle(protoParticle);
+            addParticle(p);
+            mouseDown = false;
+        }
+    }
+
+    function resize() {
+		panx -= canvas.width / 2;
+		pany -= canvas.height /2;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        trailCanvas.width = canvas.width;
+        trailCanvas.height = canvas.height;
+        panx += canvas.width / 2;
+        pany += canvas.height / 2;
+    }
+
+    function pointerlockchange () {
+        locked = (document.pointerLockElement === canvas ||
+            document.mozPointerLockElement === canvas ||
+            document.webkitPointerLockElement === canvas);
+        canvas.setAttribute("data-locked", locked);
+    }
+
+    function updateParticles() {
+        var p, p2,  dx, dy,
+            theta, force, fscale,
+            k, j, mtd;
+
+        for (j = 0; j < particles.length; j += 1) {
+            p = particles[j];
+            if (p.dead) continue;
+
+            for (k = 0; k < particles.length; k += 1) {
+                p2 = particles[k];
+                if (p2.dead || j === k) continue;
+
+                dx = p2.x - p.x;
+                dy = p2.y - p.y;
+                d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2)) || 1;
+
+                if (p.collidesWith(p2)) {
+                    if (options.get('collision')) {
+                        // collision
+                        mtd = 2*(p.r + p2.r - d)/d;
+
+                        p2.x += dx * mtd / p2.r;
+                        p2.y += dy * mtd / p2.r;
+                        p.x -= dx * mtd / p.r;
+                        p.y -= dy * mtd / p.r;
+                        p2.dx += dx * mtd / p2.mass;
+                        p2.dy += dy * mtd / p2.mass;
+                        p.dx -= dx * mtd / p.mass;
+                        p.dy -= dy * mtd / p.mass;
+
+                        // update smallest particle to keep it from getting stuck
+                        //(p2.r > p.r ? p2 : p).update();
+                    } else {
+                        // kill smaller particle
+                        if (p.r > p2.r) {
+                            p.r += Math.sqrt(p2.r/2);
+                            p2.kill();
+                            break;
+                        } else {
+                            p2.r += Math.sqrt(p.r/2);
+                            p.kill();
+                        }
+                    }
+                } else {
+                    // "gravity"
+                    force = G * p.mass * p2.mass / Math.pow(d, 2);
+                    fscale = force / d;
+                    p.dx += fscale * dx / p.mass;
+                    p.dy += fscale * dy / p.mass;
+                }
+            }
+        }
+
+        for (j = particles.length-1; j >= 0; j -= 1) {
+            p = particles[j];
+            if (p.dead) {
+                removeParticle(j);
+            } else {
+                p.update();
+            }
+        }
+    }
+
+    function drawParticles() {
+        var p, i, c;
+
+        if (locked) {
+			// only draw protoParticle if locked
+			p = protoParticle;
+			i = 0;
+		} else {
+			p = particles[0];
+			i = 1;
+
+			if (!p) {
+				return;
 			}
 		}
-	}
 
-	function drawParticles() {
-		var p = protoParticle,
-			i = 0,
-            c;
+        clear(ctx);
 
-		clear(ctx);
+        ctx.save();
+		ctx.translate(panx, pany);
 
-		do {
+        do {
             // mass-based particle color
             // FIXME: changing the fillStyle is inefficient
             if (p.r < 5) {
@@ -195,76 +255,64 @@ define(["./particle", "./color", "./options"], function (Particle, Color, option
 
             ctx.fillStyle = c.toString();
 
-			// particle
-			ctx.beginPath();
-			ctx.arc(
-				p.x,
-				p.y,
-				p.r,
-				0,
-				6.28);
-			ctx.fill();
+            // particle
+            ctx.beginPath();
+            ctx.arc(
+                p.x,
+                p.y,
+                p.r,
+                0,
+                6.28);
+            ctx.fill();
 
-			if (i > 0 && options.get('trails')) {
-				// trail
-				ctx2.beginPath();
-				ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
-				ctx2.fill();
-			}
+            if (i > 0 && options.get('trails')) {
+                // trail
+                ctx2.beginPath();
+                ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
+                ctx2.fill();
+            }
 
-			p = particles[i++];
+            p = particles[i++];
 
-		} while (i <= particles.length);
+        } while (i <= particles.length);
 
-		ctx.restore();
+        if (mouseDown) {
+            // draw line
+            ctx.strokeStyle = "#eee";
+            ctx.beginPath();
+            ctx.moveTo(initx, inity);
+            ctx.lineTo(protoParticle.x, protoParticle.y);
+            ctx.stroke();
+        }
 
-		if (mouseDown) {
-			// draw line
-			ctx.beginPath();
-			ctx.moveTo(initx, inity);
-			ctx.lineTo(prevx, prevy);
-			ctx.stroke();
-		}
-	}
+        ctx.restore();
+    }
 
-	function drawLoop () {
-		if (!options.get('pause')) {
-			updateParticles();
-		}
+    function drawLoop () {
+        if (!options.get('pause')) {
+            updateParticles();
+        }
 
-		drawParticles();
-		window.requestAnimFrame(drawLoop);
-	}
+        drawParticles();
+        window.requestAnimFrame(drawLoop);
+    }
 
     return {
-		init: function (params) {
-			var c2 = params.trailCanvas;
+        init: function (params) {
+            help = params.help;
 
-			window.addEventListener('mousewheel', scroll);
-			window.addEventListener('DOMMouseScroll', scroll);
-			window.addEventListener('mousemove', mousemove);
-			window.addEventListener('mouseup', mouseup);
-			window.addEventListener('mousedown', mousedown);
-			window.addEventListener('keydown', keydown);
+            canvas = params.mainCanvas;
+            trailCanvas = params.trailCanvas;
+            partcount = params.particleCount;
 
-			help = params.help;
+            ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#eee';
+            ctx.strokeStyle = '#999';
 
-			canvas = params.mainCanvas;
-			partcount = params.particleCount;
+            ctx2 = trailCanvas.getContext('2d');
+            ctx2.fillStyle = '#eee';
+            ctx2.strokeStyle = '#eee';
 
-			canvas.width = window.innerWidth;
-			canvas.height = window.innerHeight;
-			c2.width = canvas.width;
-			c2.height = canvas.height;
-
-			ctx = canvas.getContext('2d');
-			ctx.fillStyle = '#eee';
-			ctx.strokeStyle = '#999';
-
-			ctx2 = c2.getContext('2d');
-			ctx2.fillStyle = '#eee';
-			ctx2.strokeStyle = '#eee';
-            
             particleColors = {
                 small: new Color({r: 150, g: 205, b: 205}),
                 medium: new Color({r: 255, g: 240, b: 70}),
@@ -272,16 +320,37 @@ define(["./particle", "./color", "./options"], function (Particle, Color, option
                 huge: new Color({r: 60, g: 30, b: 70})
             };
 
-			options.init({
-				pause: false,
-				collision: false,
-				trails: true,
-				help: true
-			});
-		},
+            options.init(params.options);
+            resize(); // set initial sizes
 
-		start: function () {
-			drawLoop();
-		}
-	};
+            canvas.requestPointerLock = canvas.requestPointerLock
+                || canvas.mozRequestPointerLock
+                || canvas.webkitRequestPointerLock;
+
+            ev.addListeners(canvas, {
+                click: function (e) {
+					if (!locked) {
+						protoParticle.x = e.clientX - panx;
+						protoParticle.y = e.clientY - pany;
+					}
+					canvas.requestPointerLock();
+				}
+            }, false);
+
+            ev.addListeners(window, {
+                mousewheel: scroll,
+                mousemove: mousemove,
+                mouseup: mouseup,
+                mousedown: mousedown,
+                keydown: keydown,
+                keyup: keyup,
+                resize: resize,
+                pointerlockchange: pointerlockchange
+            });
+        },
+
+        start: function () {
+            drawLoop();
+        }
+    };
 });

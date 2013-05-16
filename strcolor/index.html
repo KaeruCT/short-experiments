@@ -27,6 +27,7 @@
         letter-spacing: 0;
         vertical-align: middle;
         overflow-y: hidden;
+        resize: none;
     }
     #result {
 
@@ -59,7 +60,7 @@
             for (i = 0; i < lines[l].length; i += 3) {
                 hex = "";
                 for (j = 0; j < 3; j += 1) {
-                    d = (lines[l].charCodeAt(i+j) % 255);
+                    d = (lines[l].charCodeAt(i+j) % 127);
                     hex += d ? d.toString(16) : "11";
                 }
 
@@ -80,6 +81,7 @@
             i, div;
 
         container.innerHTML = "";
+        container.style.display = "none";
 
         for (i in colors) {
             div = document.createElement("div");
@@ -92,6 +94,8 @@
             }
             container.appendChild(div);
         }
+
+        container.style.display = "block";
     }
 
     function update () {
@@ -105,9 +109,7 @@
     }
 
     var input = document.getElementById("input");
-
     input.addEventListener("keyup", update);
-
     input.focus();
 
 </script>

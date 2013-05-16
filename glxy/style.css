@@ -2,7 +2,6 @@ body, html {
 	background-color: #111222;
 	margin: 0;
 	padding: 0;
-	cursor: none;
 }
 
 #main-canvas, #trail-canvas {
