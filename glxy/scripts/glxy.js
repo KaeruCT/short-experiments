@@ -268,6 +268,7 @@ define(["./particle", "./color", "./options", "./event"],
 
             if (i > 0 && options.get('trails')) {
                 // trail
+                ctx2.fillStyle = c.toString();
                 ctx2.beginPath();
                 ctx2.arc(p.x, p.y, Math.sqrt(Math.sqrt(p.r)), 0, 6.28);
                 ctx2.fill();
