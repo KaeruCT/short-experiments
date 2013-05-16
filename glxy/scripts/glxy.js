@@ -19,7 +19,6 @@ define(["./particle", "./color", "./options", "./event"],
     particleColors = {},
 
     mouseDown = false,
-    spaceDown =false,
     initx = 0, inity = 0,
     panx = 0, pany = 0;
 
@@ -43,7 +42,7 @@ define(["./particle", "./color", "./options", "./event"],
     function keydown(e) {
         switch(e.keyCode) {
 		case 32: //SPACE
-			spaceDown = true;
+			options.set('panning', true);
 			break;
         case 67: //C
             options.toggle('collision');
@@ -84,7 +83,7 @@ define(["./particle", "./color", "./options", "./event"],
     function keyup(e) {
 		switch (e.keyCode) {
 		case 32: //SPACE
-			spaceDown = false;
+			options.set('panning', false);
 			break;
 		}
 	}
@@ -102,7 +101,7 @@ define(["./particle", "./color", "./options", "./event"],
     }
 
     function mousedown(e) {
-        if (locked && !spaceDown) {
+        if (locked && !options.get('panning')) {
             mouseDown = true;
             protoParticle.dx = 0;
             protoParticle.dy = 0;
@@ -113,7 +112,7 @@ define(["./particle", "./color", "./options", "./event"],
 
     function mousemove(e) {
         if (locked) {
-			if (spaceDown) {
+			if (options.get('panning')) {
 				panx += e.dx;
 				pany += e.dy;
 			} else {
@@ -128,7 +127,7 @@ define(["./particle", "./color", "./options", "./event"],
     }
 
     function mouseup(e) {
-        if (locked && !spaceDown) {
+        if (locked && !options.get('panning')) {
             var p = new Particle(protoParticle);
             addParticle(p);
             mouseDown = false;
@@ -236,7 +235,9 @@ define(["./particle", "./color", "./options", "./event"],
         clear(ctx);
 
         ctx.save();
+        ctx2.save();
 		ctx.translate(panx, pany);
+		ctx2.translate(panx, pany);
 
         do {
             // mass-based particle color
@@ -286,6 +287,7 @@ define(["./particle", "./color", "./options", "./event"],
         }
 
         ctx.restore();
+        ctx2.restore();
     }
 
     function drawLoop () {
@@ -323,17 +325,31 @@ define(["./particle", "./color", "./options", "./event"],
             options.init(params.options);
             resize(); // set initial sizes
 
-            canvas.requestPointerLock = canvas.requestPointerLock
-                || canvas.mozRequestPointerLock
-                || canvas.webkitRequestPointerLock;
-
-            ev.addListeners(canvas, {
-                click: function (e) {
-					if (!locked) {
+            if (!params.pointerLock) {
+				document.body.style.cursor = "none";
+				locked = true;
+				ev.addListeners(canvas, {
+					mousemove: function (e) {
 						protoParticle.x = e.clientX - panx;
 						protoParticle.y = e.clientY - pany;
 					}
-					canvas.requestPointerLock();
+				}, false);
+			}
+
+            ev.addListeners(canvas, {
+                click: function (e) {
+					if (params.pointerLock) {
+						if (!locked) {
+							protoParticle.x = e.clientX - panx;
+							protoParticle.y = e.clientY - pany;
+						}
+
+						canvas.requestPointerLock = canvas.requestPointerLock
+						|| canvas.mozRequestPointerLock
+						|| canvas.webkitRequestPointerLock;
+
+						canvas.requestPointerLock();
+					}
 				}
             }, false);
 

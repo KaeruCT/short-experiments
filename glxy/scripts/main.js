@@ -19,11 +19,13 @@ require(["./glxy"], function (glxy) {
 		trailCanvas: $d("trail-canvas"),
 		particleCount: $d("particle-count"),
 		help: $d("help-box"),
+		pointerLock: false,
 		options: {
 			pause: false,
 			collision: true,
 			trails: false,
-			help: true
+			help: true,
+			panning: false
 		}
 	});
 
