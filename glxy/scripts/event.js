@@ -1,7 +1,10 @@
 define(function () {
 	var aliases = {
 		"mousewheel": ["DOMMouseScroll"],
-		"pointerlockchange": ["mozpointerlockchange", "webkitpointerlockchange"]
+		"pointerlockchange": ["mozpointerlockchange", "webkitpointerlockchange"],
+		"mousedown": ["touchstart"],
+		"mousemove": ["touchmove"],
+		"mouseup": ["touchend"]
 	},
 	entryCoords = {};
 

@@ -1,16 +1,23 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <script type="text/javascript" src="calc.js"></script>
+    <script src="calc.js"></script>
+    <link rel="stylesheet" href="index.css">
   </head>
   <body>
-      <form id="go" action="">
-        <label>Enter a basic mathematical expression (+ - * / ^)<br>
-            <input type="text" id="program">
-        </label>
-        <button type="submit">Calculate</button>
-      </form>
+      <div id="wrap">
+          <h1>Calculator</h1>
+          <div id="main">
+              <form id="go" action="">
+                <label>Enter a basic mathematical expression (+ - * / ^)<br>
+                    <input value="5*(2+5)" type="text" id="program">
+                </label>
+                <button type="submit">Calculate</button>
+              </form>
 
-      <div id="execution"></div>
+              <div id="execution"></div>
+            </div>
+        </div>
   </body>
   <script>
         function d (id) {
@@ -33,7 +40,7 @@
 
             container.innerHTML = '';
             result = calculator.run(program, debug);
-            resultContainer.innerHTML = result;
+            resultContainer.innerHTML = "Result: <b>" + result + "</b>";
             container.appendChild(resultContainer);
         });
   </script>

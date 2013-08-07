@@ -24,7 +24,7 @@ var calculator = (function () {
             fn: function (a, b) {
                 return parseFloat(a) % parseFloat(b);
             }
-        }
+        },
         '^': {
             fn: function (a, b) {
                 return Math.pow(parseFloat(a), parseFloat(b));
@@ -51,6 +51,11 @@ var calculator = (function () {
 
             for (op in operators) {
                 for (i = 0; i < len; i += 1) {
+
+                    if (token.charAt(i) === '(') {
+                        return -2;
+                    }
+
                     if (token.charAt(i) === op) {
                         return i;
                     }
@@ -60,23 +65,65 @@ var calculator = (function () {
         }
 
         function parseTokens(token) {
-            var a, b, operator,
-                olen = 1,
-                i = matchOperator(token);
+            function parens(token) {
+                var i = 0, pcount = 0, j, char,
+                    len = token.length;
 
-            if (i === -1) {
+                for (; i < len; i += 1) {
+                    char = token.charAt(i);
+
+                    if (char === '(') {
+                        for (j = i; j < len; j += 1) {
+                            char = token.charAt(j);
+                            if (char === '(') pcount += 1;
+                            if (char === ')') pcount -= 1;
+
+                            if (j > i && pcount === 0) {
+                                return token.substr(i + 1, j - i - 1);
+                            }
+                        }
+                    }
+                }
                 return token;
             }
 
-            a = token.substr(0, i);
-            operator = token.substr(i, olen);
-            b = token.substr(i + olen, token.length - 1);
+            function parse(token) {
+                var ptoken, olen = 1,
+                    i, a, b, operator;
 
-            return {
-                operator: operator,
-                a: parseTokens(a),
-                b: parseTokens(b)
-            };
+                if (typeof token === "object") {
+                    return token;
+                }
+
+                i = matchOperator(token);
+
+                if (i === -2) {
+                    ptoken = parens(token);
+                    a = parse(ptoken);
+
+                    token = token.substr(ptoken.length + 1);
+                    i = matchOperator(token);
+
+                    if (i == -1) {
+                        return a;
+                    }
+                } else {
+                    if (i === -1) {
+                        return token;
+                    }
+
+                    a = token.substr(0, i);
+                }
+
+                operator = token.substr(i, olen);
+                b = token.substr(i + olen);
+                return {
+                    operator: operator,
+                    a: parse(a),
+                    b: parse(b)
+                };
+            }
+            return parse(token);
         }
 
         program = replaceConstants(program);
