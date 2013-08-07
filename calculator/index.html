@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <script type="text/javascript" src="calc.js"></script>
+  </head>
+  <body>
+      <form id="go" action="">
+        <label>Enter a basic mathematical expression (+ - * / ^)<br>
+            <input type="text" id="program">
+        </label>
+        <button type="submit">Calculate</button>
+      </form>
+
+      <div id="execution"></div>
+  </body>
+  <script>
+        function d (id) {
+            return document.getElementById(id);
+        }
+
+        d('go').addEventListener('submit', function (e) {
+            var program = d('program').value,
+                result,
+                resultContainer = document.createElement('div'),
+                container = d('execution');
+
+            function debug (operator, a, b, result) {
+                var line = document.createElement('div');
+                line.innerHTML = a + ' ' + operator + ' ' + b + ' = ' + result;
+                container.appendChild(line);
+            }
+
+            e.preventDefault();
+
+            container.innerHTML = '';
+            result = calculator.run(program, debug);
+            resultContainer.innerHTML = result;
+            container.appendChild(resultContainer);
+        });
+  </script>
+</html>
