@@ -8,13 +8,13 @@ window.requestAnimFrame =
             window.setTimeout(callback, 1000 / 60);
         };
 
-function Color() {
+function Color(h, s, l) {
     this.hincv = 0.5;
     this.lincv = 0.1;
     this.l_dir = 0;
-    this.h = 0;
-    this.s = 100;
-    this.l = 10;
+    this.h = h !== undefined ? h : 0;
+    this.s = s !== undefined ? s : 100;
+    this.l = l !== undefined ? l : 10;
     this.minl = 10;
     this.maxl = 90;
 }
@@ -42,7 +42,8 @@ var canvas, ctx,
     rot = 0,
     clear = false,
     countmult = 2,
-    colors = [];
+    colors = [],
+    bgcolor = new Color(0, 0, 0);
 
 function resize() {
     canvas.width = window.innerWidth;
@@ -77,6 +78,10 @@ function draw () {
         c.inc_h();
         c.inc_l();
     });
+    bgcolor.l = colors[0].l;
+    
+    canvas.style.background = bgcolor.get();
+    
     rot += 0.01;
     for (var i = -1; i < npts; i++) {
         if (i > -1) {
@@ -111,6 +116,9 @@ window.onload = function () {
 
     drawLoop(canvas);
     canvas.focus();
+    document.querySelector(".hint").onclick = function () {
+        this.style.display = 'none';
+    };
 };
 
 window.addEventListener('resize', resize);
