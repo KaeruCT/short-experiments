@@ -10,7 +10,7 @@
           <div id="main">
               <form id="go" action="">
                 <label>Enter a basic mathematical expression (+ - * / ^)<br>
-                    <input value="5*(2+5)" type="text" id="program">
+                    <input value="3+4*2/(1-5)^2^3" type="text" id="program">
                 </label>
                 <button type="submit">Calculate</button>
               </form>
@@ -40,6 +40,11 @@
 
             container.innerHTML = '';
             result = calculator.run(program, debug);
+
+            if (result === null) {
+                result = 'Could not parse expression. Please check for mismatched parentheses';
+            }
+
             resultContainer.innerHTML = "Result: <b>" + result + "</b>";
             container.appendChild(resultContainer);
         });
