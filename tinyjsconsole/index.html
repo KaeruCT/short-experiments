@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+tinyjsconsole
+</title>
+<script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+<style type="text/css">
+    body {
+        font-family: monospace;
+        background: #000;
+        color: #ccc;
+    }
+    html, body {
+        margin: 0;
+        padding: 0;
+    }
+    #f {
+        width: 100%;
+        background: #333;
+    }
+    #f>input[type=text] {
+        box-sizing: border-box;
+        border:0;
+        background: transparent;
+        padding: 4px;
+        color: inherit;
+        display: block;
+        font-family: inherit;
+        height: 20px;
+        width: 100%;
+    }
+    #log {
+        overflow-y: scroll;
+        position: absolute;
+        top: 20px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+    #log>div {
+        padding: 4px;
+    }
+</style>
+<script>
+$(function () {
+    var history = [],
+        hcursor = 0,
+        $f = $("#f"),
+        $log = $("#log"),
+        $entry = $("#entry");
+
+    function log(str) {
+        $("<div/>")
+            .html(str)
+            .hide()
+            .appendTo($log.scrollTop($("#log")[0].scrollHeight))
+            .fadeIn('fast');
+    }
+
+    function clear() {
+        $log.html("");
+    }
+
+    $f.on("keyup", function (e) {
+        var k;
+        if (e.keyCode === 40) {
+            k = Math.min(hcursor + 1, history.length - 1);
+        } else if (e.keyCode === 38) {
+            k = Math.max(hcursor - 1, 0);
+        }
+        if (k !== undefined) {
+            hcursor = k;
+            $entry.val(history[k]);
+        }
+    });
+
+    $f.on("submit", function (e) {
+        var $v = $(this).find("[type=text]"),
+            val = $v.val(),
+            result;
+
+        e.preventDefault();
+        if ($v.val() === 'clear') {
+            clear();
+            return;
+        }
+
+        history.push(val);
+        hcursor = history.length;
+
+        try {
+            result = eval('(function(){return ' + val + '}())');
+            if (typeof result === "object") {
+                result = JSON.stringify(result);
+            }
+        } catch (e) {
+            result = e;
+        }
+
+        log(result);
+        $v.val("");
+    });
+});
+</script>
+</head>
+<body>
+<form autocomplete="off" id="f">
+    <input id="entry" type="text" />
+</form>
+<div id="log"></div>
+</body>
+</html>
