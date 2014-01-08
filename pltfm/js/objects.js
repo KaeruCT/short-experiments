@@ -66,7 +66,7 @@ function Player(p) {
     p = p || {};
     Behavior.gravity_particle.call(this, p);
     Behavior.mortal_object.call(this);
-    this.has_jumped = false;
+    this.controlled = true;
 }
 
 Player.prototype.render = function (ctx) {
@@ -84,20 +84,21 @@ Player.prototype.render = function (ctx) {
 Player.prototype.update = function () {
     Behavior.gravity.call(this);
 
-    if (this.dy <= 0) {
-        this.has_jumped = false;
-    }
-
     if (input.isDown(input.RIGHT)) {
-        this.dx += 2;
+        this.mx = 0.5;
     }
 
     if (input.isDown(input.LEFT)) {
-        this.dx -= 2;
+        this.mx = -0.5;
     }
 
-    if (!this.has_jumped && input.justPressed(input.UP)) {
-        this.has_jumped = false;
-        this.dy -= 2;
+    if (input.justReleased(input.RIGHT) || input.justReleased(input.LEFT)) {
+        this.mx = 0;
+    }
+    console.log(this.dx);
+
+    if (!this.airborne && input.justPressed(input.UP)) {
+        this.my = -10;
+        this.y -= this.r/4;
     }
 }
