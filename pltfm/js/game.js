@@ -1,5 +1,6 @@
 (function (exports) {
-    var canvas, ctx, gens, objects,
+    var canvas, ctx, gens, objects, player,
+        onLoop,
         requestAnimFrame =
         window.requestAnimationFrame       ||
         window.webkitRequestAnimationFrame ||
@@ -16,11 +17,15 @@
             maxy: 5,
             maxx: 5,
             width: 0,
-            height: 0
+            height: 0,
+            objects: function () {
+                return objects.length;
+            }
         };
 
-    function init () {
+    function init (fn) {
         var i = 0;
+        onLoop = fn || function () {};
         canvas = document.getElementById('stage');
         canvas.width = parseInt(canvas.style.width, 10);
         canvas.height = parseInt(canvas.style.height, 10);
@@ -33,24 +38,23 @@
         objects = [];
         gens = [];
 
-        input.addHandler(input.PAUSE, function () {alert('hello');});
-
         for (; i < 8; i++) {
-            //gens.push(new ParticleGenerator({
-                //x: canvas.width/2,
-                //y: canvas.height/2,
-                //angle: i%2 === 0 ? Math.PI : Math.PI*2,
-                //intensity: i
-            //}));
+            gens.push(new ParticleGenerator({
+                x: canvas.width/2,
+                y: canvas.height/2,
+                angle: i%2 === 0 ? Math.PI : Math.PI*2,
+                intensity: i
+            }));
         }
 
-        objects.push(new Player({
+        player = new Player({
             x: canvas.width/2,
             y: canvas.height/2,
             r: 5
-        }));
+        });
+        objects.push(player);
 
-        loop(canvas);
+        loop();
     }
 
     function loop () {
@@ -61,7 +65,14 @@
         for (i = 0; i < objects.length; i++) {
             p = objects[i];
             p.update();
-            if (p.dead || p.y >= canvas.height || p.x <= 0 || p.x >= canvas.width) {
+
+            if (p !== player && p.collides_with(player)) {
+                p.die();
+                player.r += 0.01;
+                player.color = p.color;
+            }
+
+            if (!p.alive || p.y >= canvas.height || p.x <= 0 || p.x >= canvas.width) {
                 objects.splice(objects.indexOf(p), 1);
             }
         }
@@ -82,6 +93,7 @@
 
         input.update(); // update input
 
+        onLoop();
         requestAnimFrame(loop);
     }
 

@@ -11,6 +11,8 @@ Particle.prototype.update = function () {
     this.color.inc_l();
     if (this.r > 0.1) {
         this.r -= 0.01;
+    } else {
+        this.die();
     }
 };
 
@@ -67,10 +69,11 @@ function Player(p) {
     Behavior.gravity_particle.call(this, p);
     Behavior.mortal_object.call(this);
     this.controlled = true;
+    this.color = new Color(200, 60, 50);
 }
 
 Player.prototype.render = function (ctx) {
-    ctx.fillStyle = 'rgb(255,0,0)';
+    ctx.fillStyle = this.color.get();
     ctx.beginPath();
     ctx.arc(
         this.x,
@@ -95,7 +98,6 @@ Player.prototype.update = function () {
     if (input.justReleased(input.RIGHT) || input.justReleased(input.LEFT)) {
         this.mx = 0;
     }
-    console.log(this.dx);
 
     if (!this.airborne && input.justPressed(input.UP)) {
         this.my = -10;

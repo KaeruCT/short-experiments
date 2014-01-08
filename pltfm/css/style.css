@@ -9,7 +9,8 @@ body {
     font-family: "FreeMono", "Monospace", "Courier", monospace;
     color: #555;
 }
-
+#info {position: absolute; top: 0; left: 0; padding: 8px;}
+#count {color: #aaa;}
 #stage {
     top: 50%;
     border: #333 1px dashed;

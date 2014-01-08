@@ -12,10 +12,20 @@
         this.height = function () {
             return this.r*2;
         }
+
+        this.collides_with = function (p) {
+            var dx = p.x - this.x;
+				dy = p.y - this.y;
+
+			return Math.pow(dx, 2) + Math.pow(dy, 2) < Math.pow(this.r + p.r, 2);
+        }
     }
 
     Behavior.mortal_object = function () {
         this.alive = true;
+        this.die = function () {
+            this.alive = false;
+        };
     }
 
     Behavior.gravity = function () {
@@ -51,12 +61,12 @@
             // floor
             this.dy = 0;
             this.y = Game.height - this.r;
-            this.my = 0;
+            this.my = -this.my;
         } else if (this.y - this.r <= 0) {
             // ceiling
             this.dy = -this.dy;
             this.y = this.r;
-            this.my = 0;
+            this.my = -this.my;
         } else {
             this.dy += this.my;
         }
@@ -65,12 +75,12 @@
             // left wall
             this.dx = -this.dx;
             this.x = this.r;
-            this.mx = 0;
+            this.mx = -this.mx;
         } else if (this.x + this.r >= Game.width) {
             // right wall
             this.dx = -this.dx;
             this.x = Game.width - this.r;
-            this.mx = 0;
+            this.mx = -this.mx;
         }
 
         this.x += this.dx;
