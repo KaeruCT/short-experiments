@@ -72,31 +72,50 @@ function Player(p) {
     Behavior.mortal_object.call(this);
     this.controlled = true;
     this.color = new Color(200, 60, 50);
+    this.c = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
 }
 
 Player.prototype.render = function (ctx) {
-    var i, r = this.r/2;
-    ctx.fillStyle = this.color.get();
-    ctx.strokeStyle = ctx.fillStyle;
+    var i, self = this,
+        w2 = Game.width/2, h2 = Game.height/2;
 
-    for (i = 2; i < 4; i ++) {
-        ctx.beginPath();
-        ctx.arc(
-            this.x,
-            this.y,
-            r*i,
-            0,
-            6.28);
-        ctx.stroke();
+    function v (i) {
+        var n = self.c[i] += 0.01;
+        return Math.abs(Math.sin(n));
     }
+    ctx.fillStyle = this.color.get({a:20, l: 20});
+    ctx.strokeStyle = this.color.get();
+
     ctx.beginPath();
     ctx.arc(
         this.x,
         this.y,
-        r,
+        this.r,
         0,
         6.28);
+    ctx.closePath();
     ctx.fill();
+
+    for (i = 0; i < 4; i ++) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        if (i%2 === 1) {
+            ctx.scale(v(i), 1);
+        } else {
+            ctx.scale(1, v(i));
+        }
+        ctx.beginPath();
+        ctx.arc(
+            0,
+            0,
+            this.r * v(i),
+            0,
+            6.28);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
 };
 
 Player.prototype.update = function () {

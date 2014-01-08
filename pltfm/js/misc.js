@@ -7,9 +7,17 @@ function Color(h, s, l) {
     this.l = l !== undefined ? l : 50;
     this.minl = 10;
     this.maxl = 90;
+    this.a = 100;
 }
-Color.prototype.get = function() {
-    return 'hsl('+this.h+','+this.s+'%,'+this.l+'%'+')';
+Color.prototype.get = function(opts) {
+    var h, s, l, a;
+    opts = opts || {};
+    h = opts.h !== undefined ? opts.h : this.h;
+    s = opts.s !== undefined ? opts.s : this.s;
+    l = opts.l !== undefined ? opts.l : this.l;
+    a = opts.a !== undefined ? opts.a : this.a;
+
+    return 'hsla('+h+','+s+'%,'+l+'%'+','+a+')';
 };
 Color.prototype.inc_h = function () {
     this.h = (this.h + this.hincv)%360;

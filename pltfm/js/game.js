@@ -50,7 +50,7 @@
         player = new Player({
             x: canvas.width/2,
             y: canvas.height/2,
-            r: 5
+            r: 8
         });
         objects.push(player);
 
