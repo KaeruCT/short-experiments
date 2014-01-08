@@ -5,7 +5,9 @@
 tinyjsconsole
 </title>
 <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+<script src="https://togetherjs.com/togetherjs-min.js"></script>
 <style type="text/css">
+    #together {display: none;}
     body {
         font-family: monospace;
         background: #000;
@@ -101,6 +103,7 @@ $(function () {
         log(result);
         $v.val("");
     });
+    $("together").click(TogetherJS);
 });
 </script>
 </head>
@@ -109,5 +112,6 @@ $(function () {
     <input id="entry" type="text" />
 </form>
 <div id="log"></div>
+<button id="together"></button>
 </body>
 </html>
