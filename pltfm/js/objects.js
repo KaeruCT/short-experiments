@@ -2,6 +2,7 @@ function Particle(p) {
     p = p || {};
     Behavior.gravity_particle.call(this, p);
     Behavior.mortal_object.call(this);
+    Behavior.bouncy_particle.call(this);
     this.color = p.color || new Color();
 }
 
@@ -30,6 +31,7 @@ Particle.prototype.render = function (ctx) {
 
 function ParticleGenerator(p) {
     p = p || {};
+
     this.angle_from = p.angle_from || Math.PI;
     this.angle_to = p.angle_to || Math.PI*2;
     this.angle_change = 0.1 || p.angle_to;
@@ -73,12 +75,25 @@ function Player(p) {
 }
 
 Player.prototype.render = function (ctx) {
+    var i, r = this.r/2;
     ctx.fillStyle = this.color.get();
+    ctx.strokeStyle = ctx.fillStyle;
+
+    for (i = 2; i < 4; i ++) {
+        ctx.beginPath();
+        ctx.arc(
+            this.x,
+            this.y,
+            r*i,
+            0,
+            6.28);
+        ctx.stroke();
+    }
     ctx.beginPath();
     ctx.arc(
         this.x,
         this.y,
-        this.r,
+        r,
         0,
         6.28);
     ctx.fill();
@@ -99,7 +114,7 @@ Player.prototype.update = function () {
         this.mx = 0;
     }
 
-    if (!this.airborne && input.justPressed(input.UP)) {
+    if (!this.airborne && input.isDown(input.UP)) {
         this.my = -10;
         this.y -= this.r/4;
     }

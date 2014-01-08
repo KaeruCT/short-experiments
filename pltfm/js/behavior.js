@@ -28,6 +28,10 @@
         };
     }
 
+    Behavior.bouncy_particle = function () {
+        this.bouncy = true;
+    };
+
     Behavior.gravity = function () {
         function sign (val) {
             return val > 0 ? 1 : -1;
@@ -59,7 +63,11 @@
 
         if (this.y + this.r >= Game.height) {
             // floor
-            this.dy = 0;
+            if (this.bouncy) {
+                this.dy = -this.dy;
+            } else {
+                this.dy = 0;
+            }
             this.y = Game.height - this.r;
             this.my = -this.my;
         } else if (this.y - this.r <= 0) {
@@ -85,6 +93,10 @@
 
         this.x += this.dx;
         this.y += this.dy;
+
+        // TODO: this shouldn't be needed...
+        this.y = Math.min(Game.height - this.r, this.y);
+
         this.airborne = this.dy !== 0;
     }
 
