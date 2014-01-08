@@ -64,14 +64,13 @@
         // update objects
         for (i = 0; i < objects.length; i++) {
             p = objects[i];
-            p.update();
-
             if (p !== player && p.collides_with(player)) {
                 p.die();
                 player.r += 0.01;
                 player.color = p.color;
             }
 
+            p.update();
             if (!p.alive || p.y >= canvas.height || p.x <= 0 || p.x >= canvas.width) {
                 objects.splice(objects.indexOf(p), 1);
             }
