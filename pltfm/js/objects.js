@@ -96,7 +96,7 @@ Player.prototype.render = function (ctx) {
     ctx.closePath();
     ctx.fill();
 
-    for (i = 0; i < 4; i ++) {
+    for (i = 0; i < 2; i ++) {
         ctx.save();
         ctx.translate(this.x, this.y);
 
@@ -134,7 +134,7 @@ Player.prototype.update = function () {
     }
 
     if (!this.airborne && input.isDown(input.UP)) {
-        this.my = -10;
+        this.my = -1.2;
         this.y -= this.r/4;
     }
 }

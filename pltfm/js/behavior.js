@@ -33,6 +33,36 @@
     };
 
     Behavior.gravity = function () {
+        var self = this;
+
+        function up() {
+            if (Game.tile_at(self, {y: -1}) === 1) {
+                return true;
+            }
+            return self.y - self.r <= 0;
+        }
+
+        function down() {
+            if (Game.tile_at(self, {y: 1}) === 1) {
+                return true;
+            }
+            return self.y + self.r >= Game.height;
+        }
+
+        function left() {
+            if (Game.tile_at(self, {x: -1}) === 1) {
+                return true;
+            }
+            return self.x - self.r <= 0;
+        }
+
+        function right() {
+            if (Game.tile_at(self, {x: 1}) === 1) {
+                return true;
+            }
+            return self.x + self.r >= Game.width;
+        }
+
         function sign (val) {
             return val > 0 ? 1 : -1;
         }
@@ -45,9 +75,20 @@
             return sign(first) * Math.min.apply(this, args);
         }
 
+        function update_pos() {
+            self.x += self.dx;
+            self.y += self.dy;
+
+            // TODO: this shouldn't be needed...
+            self.y = Math.min(Game.height - self.r, self.y);
+            self.x = Math.min(Game.width - self.r, self.x);
+
+            self.airborne = self.dy !== 0;
+        }
+
         if (this.mx !== 0) {
             this.mx -= sign(this.mx) * g.md;
-        } else if (this.controlled) {
+        } else if (this.dx !== 0 && this.controlled) {
             this.dx -= sign(this.dx) * g.md; // deaccelerate
         }
 
@@ -61,43 +102,36 @@
         this.dx = mins(this.dx, g.maxx);
         this.dy = mins(this.dy, g.maxy);
 
-        if (this.y + this.r >= Game.height) {
-            // floor
+        if (left()) {
+            this.dx = -this.dx;
+            this.x = Game.left_edge(this) + this.r;
+            this.mx = -this.mx;
+            update_pos();
+        } else if (right()) {
+            this.dx = -this.dx;
+            this.x = Game.right_edge(this) - this.r;
+            this.mx = -this.mx;
+            update_pos();
+        }
+
+        if (up()) {
+            this.dy = -this.dy;
+            this.y = Game.top_edge(this) + this.r;
+            this.my = -this.my;
+            update_pos();
+        } else if (down()) {
             if (this.bouncy) {
                 this.dy = -this.dy;
             } else {
                 this.dy = 0;
             }
-            this.y = Game.height - this.r;
+            this.y = Game.bottom_edge(this) - this.r;
             this.my = -this.my;
-        } else if (this.y - this.r <= 0) {
-            // ceiling
-            this.dy = -this.dy;
-            this.y = this.r;
-            this.my = -this.my;
+            update_pos();
         } else {
             this.dy += this.my;
+            update_pos();
         }
-
-        if (this.x - this.r <= 0) {
-            // left wall
-            this.dx = -this.dx;
-            this.x = this.r;
-            this.mx = -this.mx;
-        } else if (this.x + this.r >= Game.width) {
-            // right wall
-            this.dx = -this.dx;
-            this.x = Game.width - this.r;
-            this.mx = -this.mx;
-        }
-
-        this.x += this.dx;
-        this.y += this.dy;
-
-        // TODO: this shouldn't be needed...
-        this.y = Math.min(Game.height - this.r, this.y);
-
-        this.airborne = this.dy !== 0;
     }
 
     exports.Behavior = Behavior;
