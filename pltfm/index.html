@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+    <title>dare</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css"
+</head>
+<body>
+    <div id="ggame">
+        <canvas style="width: 600px; height: 400px;" id="stage"></canvas>
+    </div>
+    <div id="info">
+        Objects: <span id="count"></div>
+    </div>
+    <script src="js/game.js"></script>
+    <script src="js/objects.js"></script>
+    <script src="js/behavior.js"></script>
+    <script src="js/misc.js"></script>
+
+    <script>
+        var count = document.getElementById('count');
+        Game.init(function () {
+            count.textContent = Game.objects();
+        });
+
+        window.addEventListener('keyup', function (e) {
+            input.onKeyUp(e);
+        }, false);
+
+        window.addEventListener('keydown', function (e) {
+            input.onKeyDown(e);
+        }, false);
+    </script>
+</body>
+</html>
