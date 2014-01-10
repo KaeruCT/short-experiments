@@ -10,8 +10,8 @@ Particle.prototype.update = function () {
     Behavior.gravity.call(this);
     this.color.inc_h();
     this.color.inc_l();
-    if (this.r > 0.1) {
-        this.r -= 0.01;
+    if (this.r > 0.25) {
+        this.r -= 0.05;
     } else {
         this.die();
     }
@@ -83,7 +83,7 @@ Player.prototype.render = function (ctx) {
         var n = self.c[i] += 0.01;
         return Math.abs(Math.sin(n));
     }
-    ctx.fillStyle = this.color.get({a:20, l: 20});
+    ctx.fillStyle = this.color.get({a: 20, l: 20});
     ctx.strokeStyle = this.color.get();
 
     ctx.beginPath();
@@ -134,7 +134,7 @@ Player.prototype.update = function () {
     }
 
     if (!this.airborne && input.isDown(input.UP)) {
-        this.my = -0.15*this.r;
+        this.my = 1.5*-Game.gravity*this.r;
         this.y -= this.r/4;
     }
 }

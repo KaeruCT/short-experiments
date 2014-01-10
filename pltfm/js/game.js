@@ -1,6 +1,6 @@
 (function (exports) {
     var canvas, ctx, gens, objects, player,
-        map, tsize, onLoop,
+        map, tsize, onLoop, tcolor,
         requestAnimFrame =
         window.requestAnimationFrame       ||
         window.webkitRequestAnimationFrame ||
@@ -14,13 +14,13 @@
             init: init,
             gravity: 0.1,
             md: 0.1,
-            maxy: 5,
+            maxy: 10,
             maxx: 5,
             width: 0,
             height: 0,
             twidth: 0,
             theight: 0,
-            tsize: 40,
+            tsize: 30,
             map: null,
             objects: function () {
                 return objects.length;
@@ -34,39 +34,38 @@
                     ty = Math.floor(y/Game.tsize);
 
                 if (Game.map[ty] === undefined) {
-                    tile = 1;
+                    tile = 0;
                 } else if (Game.map[ty][tx] === undefined) {
                     tile = 0;
                 } else {
-                    return Game.map[ty][tx];
+                    tile = Game.map[ty][tx];
+                    //Game.map[ty][tx] = 0; // TODO: mp
                 }
                 return tile;
             },
             top_edge: function (p) {
-                var ty = Math.floor(p.y/Game.tsize);
-                if (ty === 0) return 0;
-                return (ty+1)*Game.tsize;
+                var cy = Game.tsize * Math.floor(p.y/Game.tsize);
+                return p.y*2-cy;
             },
             bottom_edge: function (p) {
-                var ty = Math.floor(p.y/Game.tsize);
-                if (ty >= Game.theight-1) return Game.height-1;
-                return (ty*Game.tsize);
+                var cy = Game.tsize * Math.floor(p.y/Game.tsize);
+                if (p.y+p.r >= Game.height) return Game.height-p.r;
+                return cy-p.r+Game.tsize;
             },
             left_edge: function (p) {
-                var tx = Math.floor(p.x/Game.tsize);
-                if (tx === 0) return 0;
-                return (tx+1)*Game.tsize;
+                var cx = Game.tsize * Math.floor(p.x/Game.tsize);
+                return p.x*2-cx;
             },
             right_edge: function (p) {
-                var tx = Math.floor(p.x/Game.tsize);
-                if (tx >= Game.twidth-1) return Game.width-1;
-                return (tx*Game.tsize);
+                var cx = Game.tsize * Math.floor(p.x/Game.tsize);
+                return p.x*2-cx-Game.tsize;
             },
 
         };
 
     function init (fn) {
         var i, j, val;
+        tcolor = new Color(0, 40, 10);
         onLoop = fn || function () {};
         canvas = document.getElementById('stage');
         canvas.width = parseInt(canvas.style.width, 10);
@@ -86,8 +85,13 @@
             Game.map[i] = [];
 
             for (j = 0; j < Game.twidth; j++) {
-                if (j%4 === 1 && i%2 === 1) val = 1;
-                else val = 0;
+                if ((j%5 === 0 || i%5 === 0) &&
+                    (j%5 !== 1  && j%5 !== 2 && i%5 !== 1 && i%5 !== 2)) {
+                    val = 1;
+                }
+                else {
+                    val = 0;
+                }
                 Game.map[i][j] = val;
             }
         }
@@ -116,8 +120,9 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // render tiles
-        ctx.fillStyle = '#333';
-        ctx.strokeStyle = '#666';
+        tcolor.inc_h();
+        ctx.fillStyle = tcolor.get();
+        ctx.strokeStyle = tcolor.get({a: 20, l: 30});
         for (i = 0; i < Game.map.length; i++) {
             for (j = 0; j < Game.map[i].length; j++) {
                 p = Game.map[i][j];
