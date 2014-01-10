@@ -122,11 +122,11 @@ Player.prototype.update = function () {
     Behavior.gravity.call(this);
 
     if (input.isDown(input.RIGHT)) {
-        this.mx = 0.5;
+        this.mx = 0.05*this.r;
     }
 
     if (input.isDown(input.LEFT)) {
-        this.mx = -0.5;
+        this.mx = -0.05*this.r;
     }
 
     if (input.justReleased(input.RIGHT) || input.justReleased(input.LEFT)) {
@@ -134,7 +134,7 @@ Player.prototype.update = function () {
     }
 
     if (!this.airborne && input.isDown(input.UP)) {
-        this.my = -1.2;
+        this.my = -0.15*this.r;
         this.y -= this.r/4;
     }
 }

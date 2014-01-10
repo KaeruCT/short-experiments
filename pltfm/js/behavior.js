@@ -46,7 +46,7 @@
             if (Game.tile_at(self, {y: 1}) === 1) {
                 return true;
             }
-            return self.y + self.r >= Game.height;
+            return self.y + 1 + self.r >= Game.height;
         }
 
         function left() {
@@ -60,14 +60,14 @@
             if (Game.tile_at(self, {x: 1}) === 1) {
                 return true;
             }
-            return self.x + self.r >= Game.width;
+            return self.x +  1 + self.r >= Game.width;
         }
 
-        function sign (val) {
+        function sign(val) {
             return val > 0 ? 1 : -1;
         }
 
-        function mins () {
+        function mins() {
             var args = Array.prototype.slice.call(arguments, 0),
                 first = args[0], min, s;
 
@@ -80,8 +80,8 @@
             self.y += self.dy;
 
             // TODO: this shouldn't be needed...
-            self.y = Math.min(Game.height - self.r, self.y);
-            self.x = Math.min(Game.width - self.r, self.x);
+            //self.y = Math.min(Game.height - self.r, self.y);
+            //self.x = Math.min(Game.width - self.r, self.x);
 
             self.airborne = self.dy !== 0;
         }
@@ -104,34 +104,31 @@
 
         if (left()) {
             this.dx = -this.dx;
-            this.x = Game.left_edge(this) + this.r;
-            this.mx = -this.mx;
-            update_pos();
+            this.x += 1; //Game.left_edge(this) + this.r;
+            this.mx = -this.mx*this.r;
         } else if (right()) {
             this.dx = -this.dx;
-            this.x = Game.right_edge(this) - this.r;
-            this.mx = -this.mx;
-            update_pos();
+            this.x -= 1;//= Game.right_edge(this) - this.r;
+            this.mx = -this.mx*this.r;
         }
 
         if (up()) {
             this.dy = -this.dy;
-            this.y = Game.top_edge(this) + this.r;
+            this.y += 1; //Game.top_edge(this) + this.r;
             this.my = -this.my;
-            update_pos();
         } else if (down()) {
             if (this.bouncy) {
-                this.dy = -this.dy;
+                this.dy = -this.dy/2;
+                this.my = -this.my;
             } else {
                 this.dy = 0;
+                this.my = 0;
             }
-            this.y = Game.bottom_edge(this) - this.r;
-            this.my = -this.my;
-            update_pos();
+            this.y -= 1; //Game.bottom_edge(this) - this.r;
         } else {
             this.dy += this.my;
-            update_pos();
         }
+        update_pos();
     }
 
     exports.Behavior = Behavior;

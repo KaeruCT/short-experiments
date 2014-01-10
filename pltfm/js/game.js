@@ -20,7 +20,7 @@
             height: 0,
             twidth: 0,
             theight: 0,
-            tsize: 50,
+            tsize: 40,
             map: null,
             objects: function () {
                 return objects.length;
@@ -49,8 +49,8 @@
             },
             bottom_edge: function (p) {
                 var ty = Math.floor(p.y/Game.tsize);
-                if (ty >= Game.theight-1) return Game.height;
-                return (ty*Game.tsize) - 20;
+                if (ty >= Game.theight-1) return Game.height-1;
+                return (ty*Game.tsize);
             },
             left_edge: function (p) {
                 var tx = Math.floor(p.x/Game.tsize);
@@ -59,7 +59,7 @@
             },
             right_edge: function (p) {
                 var tx = Math.floor(p.x/Game.tsize);
-                if (tx >= Game.twidth-1) return Game.width;
+                if (tx >= Game.twidth-1) return Game.width-1;
                 return (tx*Game.tsize);
             },
 
@@ -86,20 +86,20 @@
             Game.map[i] = [];
 
             for (j = 0; j < Game.twidth; j++) {
-                if (j%2 === 1) val = 1;
+                if (j%4 === 1 && i%2 === 1) val = 1;
                 else val = 0;
                 Game.map[i][j] = val;
             }
         }
 
-        //for (i = 0; i < 8; i++) {
-            //gens.push(new ParticleGenerator({
-                //x: canvas.width/2,
-                //y: canvas.height/2,
-                //angle: i%2 === 0 ? Math.PI : Math.PI*2,
-                //intensity: i
-            //}));
-        //}
+        for (i = 0; i < 8; i++) {
+            gens.push(new ParticleGenerator({
+                x: canvas.width/2,
+                y: canvas.height/2,
+                angle: i%2 === 0 ? Math.PI : Math.PI*2,
+                intensity: i
+            }));
+        }
 
         player = new Player({
             x: canvas.width/2,
@@ -136,7 +136,7 @@
             p = objects[i];
             if (p !== player && p.collides_with(player)) {
                 p.die();
-                player.r += 0.01;
+                //player.r += 0.5;
                 player.color = p.color;
             }
 
