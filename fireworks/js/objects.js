@@ -21,7 +21,9 @@ Particle.prototype.update = function () {
 };
 
 Particle.prototype.render = function (ctx) {
+    var i, m, r, pts;
     if (!this.explode) {
+        // circle
         ctx.fillStyle = this.color.get();
         ctx.beginPath();
         ctx.arc(
@@ -31,12 +33,32 @@ Particle.prototype.render = function (ctx) {
             0,
             6.28);
         ctx.fill();
+    } else if (!this.alive) {
+        pts = 4 + Math.ceil((Math.random() * 5));
+        r = this.r;
+        // star
+        ctx.save();
+        ctx.beginPath();
+        ctx.translate(this.x, this.y);
+        ctx.moveTo(0, -r);
+        ctx.rotate(Math.random() * Math.PI / pts);
+        for (i = 0; i < pts; i++)
+        {
+            ctx.rotate(Math.PI / pts);
+            ctx.lineTo(0, 0 - (r*0.5));
+            ctx.rotate(Math.PI / pts);
+            ctx.lineTo(0, -r);
+        }
+        ctx.fill();
+        ctx.restore();
     } else {
+        // ray
+        m = this.r * 0.2;
         ctx.strokeStyle = this.color.get();
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x + this.dx * 0.75, this.y + this.dy * 0.75);
+        ctx.lineTo(this.x + this.dx * m, this.y + this.dy * m);
         ctx.stroke();
     }
 };

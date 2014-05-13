@@ -85,7 +85,7 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (Game.tick % 2 == 0) {
+        if (Game.tick % 4 == 0) {
             ctx2.clearRect(0, 0, canvas.width, canvas.height);
         }
 
