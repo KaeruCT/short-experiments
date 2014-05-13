@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{font-family:sans-serif;color:#ccc;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
         #info{font-size:.9em;padding:10px;}
     </style>
@@ -22,12 +22,14 @@
             map = [],
             mints = 2,
             ts = mints, // rendered tile size
-            s = 40, // map width/height
+            s = 50, // map width/height
             maxh = 4, // max height (in tile size)
             ox = 0,
             oy = 0,
             t = 0,
             w, h, x, y, cx, cy;
+
+            for (y = 0; y < s; y++) map.push([]);
 
             function resize () {
                 w = q.innerWidth || e.clientWidth || b.clientWidth;
@@ -46,7 +48,6 @@
                 ts += (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.1;
                 ts = Math.max(ts, mints);
                 resize();
-                mousemove();
             }
             //q.addEventListener('mousemove', mousemove);
             q.addEventListener('mousewheel', scroll);
@@ -54,19 +55,13 @@
             q.addEventListener('resize',resize);
 
             function color(n) {
-                n = Math.floor(n*255);
+                n = Math.floor((n)*255);
 
                 return 'rgb('+n+','+n+','+n+')';
             }
 
             resize();
             noise.seed(Math.random());
-            for (y = 0; y < s; y++) {
-                map.push([]);
-                for (x = 0; x < s; x++) {
-                    map[y][x] = Math.abs(noise.simplex2(x, y));
-                }
-            }
 
             !function loop () {
                 var size = ts,
@@ -97,11 +92,19 @@
                         ctx.fill();
                     }
                 }
-                t++;
+
+                for (y = t; y < t+s; y++) {
+                    for (x = 0; x < s; x++) {
+                        map[y-t][x] = Math.abs(noise.simplex2(y/10, x/10));
+                    }
+                }
+
                 mousemove({
                     clientX: w/2 - Math.sin(t/100)*w,
                     clientY: h*0.8 - Math.cos(t/100)*h/8,
                 });
+
+                t++;
                 anim(loop);
             }();
     </script>
