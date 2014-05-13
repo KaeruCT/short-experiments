@@ -50,20 +50,32 @@
             }
 
             !function loop () {
-                var size = ts+ts/2,
-                    xx, yy, oxx = ox, oyy = oy;
+                var size = ts,
+                    oxx = ox, oyy = oy,
+                    hh, xx, yy, tw, th;
 
                 ctx.clearRect(0, 0, w, h);
 
                 for (y = 0; y < s; y++) {
                     for (x = 0; x < s; x++) {
+                        // normalize height (0 to ts*4)
+                        hh =  4 * ts * (map[y][x] / 255);
+
+                        // update 'camera' offset
                         oxx += ox;
                         oyy += oy*0.5;
+
+                        // coords
                         xx = cx + oxx + (x*ts);
-                        yy = cy + oyy + (y*ts);
+                        yy = cy + oyy + (y*ts) - hh;
+
+                        // tile width & height
+                        tw = size;
+                        th = size + hh;
+
                         ctx.beginPath();
                         ctx.fillStyle = color(map[y][x]);
-                        ctx.rect(xx, yy, size, size);
+                        ctx.rect(xx, yy, tw, th);
                         ctx.fill();
                     }
                 }
