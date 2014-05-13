@@ -21,15 +21,24 @@ Particle.prototype.update = function () {
 };
 
 Particle.prototype.render = function (ctx) {
-    ctx.fillStyle = this.color.get();
-    ctx.beginPath();
-    ctx.arc(
-        this.x,
-        this.y,
-        this.r,
-        0,
-        6.28);
-    ctx.fill();
+    if (!this.explode) {
+        ctx.fillStyle = this.color.get();
+        ctx.beginPath();
+        ctx.arc(
+            this.x,
+            this.y,
+            this.r,
+            0,
+            6.28);
+        ctx.fill();
+    } else {
+        ctx.strokeStyle = this.color.get();
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.dx * 0.75, this.y + this.dy * 0.75);
+        ctx.stroke();
+    }
 };
 
 function ParticleGenerator(p) {

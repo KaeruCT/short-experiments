@@ -111,7 +111,7 @@
             }
 
             if (!p.alive) {
-                p.r = explode ? 16 : 2;
+                p.r = explode ? 16 : 1.5;
                 p.render(ctx2);
             }
         }
