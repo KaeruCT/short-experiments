@@ -50,7 +50,7 @@
                 if (gens) {
                     for (i = 0; i < gens.length; i++) {
                         gens[i].x = canvas.width/2;
-                        gens[i].y = canvas.height/2;
+                        gens[i].y = canvas.height*0.75;
                     }
                 }
             }
@@ -71,7 +71,7 @@
         gens = [];
         gens.push(new ParticleGenerator({
             x: canvas.width/2,
-            y: canvas.height/2,
+            y: canvas.height*0.75,
             intensity: 10,
             r: 5
         }));
