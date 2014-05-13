@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
         #info{font-size:.9em;padding:10px;}
     </style>
@@ -20,20 +20,20 @@
             c = document.getElementById('stage'),
             ctx = c.getContext('2d'),
             map = [],
-            mints = 2,
-            ts = mints, // rendered tile size
-            s = 50, // map width/height
-            maxh = 4, // max height (in tile size)
+            mints = 16, // rendered tile size
+            ts = mints,
+            s = 40, // map width/height
+            maxh = 3, // max height (in tile size)
             ox = 0,
             oy = 0,
             t = 0,
-            w, h, x, y, cx, cy;
+            w, h, x, y, cx, cy, r, n;
 
-            for (y = 0; y < s; y++) map.push([]);
+            for (y = 0; y < s; y++) map.push([]); // init map
 
             function resize () {
                 w = q.innerWidth || e.clientWidth || b.clientWidth;
-                h = q.innerHeight|| e.clientHeight|| b.clientHeight;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
                 c.width = w;
                 c.height = h;
                 cx = (w - s*ts)/2;
@@ -54,10 +54,13 @@
             q.addEventListener('DOMMouseScroll', scroll);
             q.addEventListener('resize',resize);
 
-            function color(n) {
-                n = Math.floor((n)*255);
+            function color(n) { // n => between 0 and 1
+                var r = Math.floor(n*140),
+                    g = Math.floor(n*230),
+                    b = Math.floor(n*160),
+                    a = 0.3 + n*0.7;
 
-                return 'rgb('+n+','+n+','+n+')';
+                return 'rgba('+r+','+g+', '+b+','+a+')';
             }
 
             resize();
@@ -70,6 +73,7 @@
 
                 ctx.clearRect(0, 0, w, h);
 
+                // render
                 for (y = 0; y < s; y++) {
                     // update 'camera' offset
                     oyy += oy;
@@ -80,28 +84,47 @@
 
                         // coords
                         xx = cx + oxx + (x*ts);
-                        yy = cy + oyy + (y*ts - (ts/2)) - hh;
+                        yy = cy + oyy + (y*ts - (ts/2)) - hh; // the - (ts/2) centers the view
 
                         // tile width & height
                         tw = size;
                         th = size + hh;
 
+                        // rect
                         ctx.beginPath();
                         ctx.fillStyle = color(map[y][x]);
                         ctx.rect(xx, yy, tw, th);
                         ctx.fill();
+
+                        // circle
+                        if (map[y][x] > 0.5) {
+                            r = ts/2;
+                            ctx.arc(xx+r, yy, r, 3.14, 6.28);
+                            ctx.fill();
+                        }
                     }
                 }
 
-                for (y = t; y < t+s; y++) {
+                // move rows up
+                for (y = 0; y < s-1; y++) {
                     for (x = 0; x < s; x++) {
-                        map[y-t][x] = Math.abs(noise.simplex2(y/10, x/10));
+                        map[y][x] = map[y+1][x];
                     }
                 }
 
+                // generate new row
+                for (x = 0; x < s; x++) {
+                    n = noise.simplex2(t*0.1, x*0.1);
+                    // simplex returns a number between -1 and 1, turn into a number from 0 to 1
+                    n = (1 + n)/2;
+                    n += Math.cos(t*0.01)*0.25; // fluctuate height
+                    map[s-1][x] = n;
+                }
+
+                // simulate a smooth camera movement
                 mousemove({
-                    clientX: w/2 - Math.sin(t/100)*w,
-                    clientY: h*0.8 - Math.cos(t/100)*h/8,
+                    clientX: w*0.5 - Math.sin(t/100) * w*0.25,
+                    clientY: h*0.75 - Math.cos(t/100) * h*0.05,
                 });
 
                 t++;
