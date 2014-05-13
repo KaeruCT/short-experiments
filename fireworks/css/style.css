@@ -1,0 +1,31 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+body {
+    background: #000;
+    font-family: "FreeMono", "Monospace", "Courier", monospace;
+    color: #555;
+}
+#info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 8px;
+}
+#count {
+    color: #aaa;
+}
+#stage, #stage2 {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+#stage2 {
+    opacity: 0.5;
+}
