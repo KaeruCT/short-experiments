@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
-        #stage{position:absolute;top:0;bottom:0;left:0;right:0;}
+    <style>body,html{font-family:sans-serif;color:#ccc;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
     </style>
+    <script src=perlin.js></script>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 </head>
 <body>
+    <div id=info>scroll</div>
     <canvas id=stage></canvas>
     <script>
         var q = window,
@@ -17,35 +20,51 @@
             c = document.getElementById('stage'),
             ctx = c.getContext('2d'),
             map = [],
-            ts = 20,
-            s = 20,
+            mints = 2,
+            ts = mints, // rendered tile size
+            s = 40, // map width/height
+            maxh = 4, // max height (in tile size)
             ox = 0,
             oy = 0,
+            t = 0,
             w, h, x, y, cx, cy;
 
-            q.onresize = function () {
+            function resize () {
                 w = q.innerWidth || e.clientWidth || b.clientWidth;
                 h = q.innerHeight|| e.clientHeight|| b.clientHeight;
                 c.width = w;
                 c.height = h;
-                cx = w/2 - s*ts/2;
-                cy = h/2 - s*ts/2;
-            }; q.onresize();
-
-            q.onmousemove = function (e) {
-                ox = 0.5 - e.clientX/w;
-                oy = 0.5 - e.clientY/h;
-            };
+                cx = (w - s*ts)/2;
+                cy = (h - s*ts/2)/2;
+            }
+            function mousemove(e) {
+                ox = ts * (0.5 - e.clientX/w);
+                oy = ts * 2 * (0.5 - e.clientY/h);
+            }
+            function scroll(e) {
+                e.preventDefault();
+                ts += (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.1;
+                ts = Math.max(ts, mints);
+                resize();
+                mousemove();
+            }
+            //q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
 
             function color(n) {
-                n = n%255;
+                n = Math.floor(n*255);
+
                 return 'rgb('+n+','+n+','+n+')';
             }
 
+            resize();
+            noise.seed(Math.random());
             for (y = 0; y < s; y++) {
                 map.push([]);
                 for (x = 0; x < s; x++) {
-                    map[y][x] = Math.floor(Math.random()*255);
+                    map[y][x] = Math.abs(noise.simplex2(x, y));
                 }
             }
 
@@ -57,17 +76,16 @@
                 ctx.clearRect(0, 0, w, h);
 
                 for (y = 0; y < s; y++) {
-                    for (x = 0; x < s; x++) {
-                        // normalize height (0 to ts*4)
-                        hh =  4 * ts * (map[y][x] / 255);
+                    // update 'camera' offset
+                    oyy += oy;
+                    oxx += ox;
 
-                        // update 'camera' offset
-                        oxx += ox;
-                        oyy += oy*0.5;
+                    for (x = 0; x < s; x++) {
+                        hh =  maxh * ts * map[y][x];
 
                         // coords
                         xx = cx + oxx + (x*ts);
-                        yy = cy + oyy + (y*ts) - hh;
+                        yy = cy + oyy + (y*ts - (ts/2)) - hh;
 
                         // tile width & height
                         tw = size;
@@ -79,6 +97,11 @@
                         ctx.fill();
                     }
                 }
+                t++;
+                mousemove({
+                    clientX: w/2 - Math.sin(t/100)*w,
+                    clientY: h*0.8 - Math.cos(t/100)*h/8,
+                });
                 anim(loop);
             }();
     </script>
