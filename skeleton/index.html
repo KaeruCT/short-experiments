@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            w, h;
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+            }
+            function scroll(e) {
+
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            function color(n) { // n => between 0 and 1
+                var r = Math.floor(n*140),
+                    g = Math.floor(n*230),
+                    b = Math.floor(n*160),
+                    a = 0.3 + n*0.7;
+
+                return 'rgba('+r+','+g+', '+b+','+a+')';
+            }
+
+            resize();
+            !function loop () {
+                var p, i;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // render
+                for (i = 0; i < obj.length; i++) {
+                    ctx.beginPath();
+                    ctx.fillStyle = color(Math.random());
+                    ctx.arc(p.x, p.y, p.r, 0, pi2);
+                    ctx.fill();
+                }
+                t++;
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#18101b;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info>click to toggle clear, scroll to change speed</div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            maxw = 5, // max width of stroke
+            n = 20, // number of particles
+            clear = true,
+            pf = 1,
+            mx, my, w, h, i, j;
+
+            function P(p) {
+                this.x = this.ox = p.x;
+                this.y = this.oy = p.y;
+                this.vx = 0;
+                this.vy = 0;
+            }
+            P.prototype.attract = function (p) {
+                var dx = p.x - this.x,
+                    dy = p.y - this.y,
+                    d = Math.sqrt(dx*dx + dy*dy);
+
+                d = d + Math.random()*d; // randomize push a bit
+                d *= pf;// push factor
+                this.x += dx/d;
+                this.y += dy/d;
+            }
+            P.prototype.integrate = function() {
+                this.vx = this.x-this.ox;
+                this.vy = this.y-this.oy;
+                this.ox = this.x;
+                this.oy = this.y;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // bounce off edges
+                if (this.x < 0) this.x = 0;
+                if (this.y < 0) this.y = 0;
+                if (this.x > w) this.x = w;
+                if (this.y > h) this.y = h;
+            };
+            function d(id) {
+                return document.getElementById(id);
+            }
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+            function click(e) {
+                e.preventDefault();
+                clear = !clear;
+                d('info').style.display = clear ? 'block' : 'none';
+            }
+            function mousemove(e) {
+                mx = e.x;
+                my = e.y;
+            }
+            function scroll(e) {
+                e.preventDefault();
+                var c = (e.detail ? e.detail * -1 : e.wheelDelta / 40) * 0.1;
+                if (c + pf > 0 && c + pf <= 5) pf += c; // arbitrary bounds
+            }
+            q.addEventListener('click', click);
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            function color(a) {
+                return 'rgba(255, 120, 80, '+a+')';
+            }
+            resize();
+
+            // init
+            mx = w/2;
+            my = h/2;
+            for (i = 0; i < n; i++) {
+                obj.push(new P({
+                    x: w*0.1 + Math.random()*w*0.9,
+                    y: h*0.1 + Math.random()*h*0.9
+                }));
+            }
+
+            !function loop () {
+                var p, p2;
+
+                if (clear) ctx.clearRect(0, 0, w, h);
+
+                // update
+                for (i = 0; i < obj.length; i++) {
+                    p = obj[i];
+                    p.attract({x: mx, y: my});
+                    //for (j = 0; p2 = obj[j]; j++) {
+                        //if (j !== i) {
+                            //p.attract({x: -p2.x, y: -p2.y});
+                        //}
+                    //}
+                    p.integrate();
+                }
+                // render
+                ctx.strokeStyle = color(0.5);
+                for (i = 0; p = obj[i]; i++) {
+                    ctx.lineWidth = Math.cos(p.vx*p.vy) * maxw;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.ox, p.oy);
+                    ctx.stroke();
+                }
+
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
