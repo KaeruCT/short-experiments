@@ -73,8 +73,8 @@
                 d('info').style.display = clear ? 'block' : 'none';
             }
             function mousemove(e) {
-                mx = e.x;
-                my = e.y;
+                mx = e.clientX;
+                my = e.clientY;
             }
             function scroll(e) {
                 e.preventDefault();
