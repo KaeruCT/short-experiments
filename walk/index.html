@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#08000B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:4em;margin-top:-2em;position:absolute;top:50%;height:8em;text-align:center;}
+        #player{display:none;}
+    </style>
+    <script src="http://www.youtube.com/player_api"></script>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=player></div>
+    <div id=info>loading...</div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            introbeat = false,
+            bangbeat = false,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            hue = 0,
+            s = 80,
+            l = 40,
+            a = 1,
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            shake = 1/11,
+            intro = new Audio('intro.ogg'),
+            riff = new Audio('bang.ogg'),
+            info = document.getElementById('info'),
+            w, h;
+
+            function P(p) {
+                this.x = p.x;
+                this.y = p.y;
+                this.r = p.r;
+                this.t = t;
+                this.dontshrink = p.dontshrink;
+            }
+
+            P.prototype.update = function () {
+                var mi = Math.min(w, h),
+                    ma = Math.max(w, h);
+
+                if (this.dying) {
+                    this.r -= shake*100;
+                } else {
+                    this.r += shake*25;
+                    if (!this.dontshrink && this.r*2 > mi*0.75) {
+                        this.dying = true;
+                        onbeat(this.r);
+                    }
+                }
+                if (this.r <= 1 || this.r * 2 >= ma * 1.2) {
+                    this.dead = true;
+                }
+
+                this.x += Math.cos(this.t);
+                this.y += Math.sin(this.t);
+                this.t += shake;
+            };
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+            function mousemove(e) {
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('resize',resize);
+
+            function color(hu, al) {
+                var h = (hu || hue) % 360;
+                al = al || a;
+                return 'hsla('+h+','+s+'%, '+l+'%,'+al+')';
+            }
+
+            function onbeat(r) {
+                dontshrink = r !== undefined;
+                r = r || 8;
+                obj.push(new P({x: w/2, y: h/2, r: r, dontshrink: dontshrink}));
+            }
+
+            resize();
+
+            function onYouTubePlayerAPIReady() {
+                new YT.Player('player', {
+                    height: 0, width: 0,
+                    videoId: 'gzeOWnnSNjg',
+                    autoplay: true,
+                    loop: true,
+                    events: {
+                        onReady: function (e) {
+                            e.target.playVideo();
+                        },
+                        'onStateChange': function (event) {
+                            if (event.data === 1) {
+                                init();
+                            }
+                        }
+                    }
+                });
+            }
+
+            function init() {
+                info.style.display = 'none';
+                onbeat();
+
+                intro.addEventListener('ended', function () {
+                    riff.play();
+                });
+                intro.addEventListener('timeupdate', function () {
+                    if (!introbeat && this.currentTime >= 2.2) {
+                        onbeat();
+                        introbeat = true;
+                    }
+                });
+                riff.loop = true;
+                riff.addEventListener('timeupdate', function() {
+                    var buffer = 0.2;
+                    if (!bangbeat && this.currentTime >= 2.05) {
+                        onbeat();
+                        bangbeat = true;
+                    }
+                    if (this.currentTime > this.duration - buffer) {
+                        // ugly hack for "gapless" loop
+                        this.currentTime = 0;
+                        this.play();
+                    }
+                });
+                riff.addEventListener('playing', function () {
+                    onbeat();
+                    hue = 360-h;
+                });
+
+                intro.play();
+
+                !function loop () {
+                    var p, i, j, a,
+                    d = 4 + (t/100)%10;
+
+                    //ctx.clearRect(0, 0, w, h);
+                    // update
+                    for (i = obj.length-1; p = obj[i]; i--) {
+                        p.update();
+                        if (p.dead) {
+                            obj.splice(i, 1);
+                        }
+                    }
+
+                    // render
+                    ctx.fillStyle = color();
+                    ctx.beginPath();
+                    for (i = 0; p = obj[i]; i++) {
+                        a = (1 + Math.sin(p.t))*pi;
+                        ctx.arc(p.x, p.y, p.r, a, pi+a);
+                    }
+                    ctx.fill();
+
+                    if (t%1000 > 500) {
+                        ctx.fillStyle = color(360-hue);
+                        ctx.beginPath();
+                        for (i = 0; p = obj[i]; i++) {
+                            a = (1 + Math.sin(p.t))*pi;
+                            ctx.arc(p.x, p.y, p.r, a-pi, a);
+                        }
+                        ctx.fill();
+                    }
+
+                    for (i = 0; p = obj[i]; i++) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.lineWidth = 8;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, pi2);
+                        ctx.stroke();
+
+                        ctx.fillStyle = color(360-hue, 0.7);
+                        for (j = t/10; j < t/10+12; j++) {
+                            ctx.beginPath();
+                            ctx.arc(
+                                p.x + Math.cos(j)*p.r,
+                                p.y + Math.sin(j)*p.r,
+                                p.r/d,
+                                0,
+                                pi2);
+                            ctx.fill();
+                        }
+
+                    }
+
+                    t+=shake*10;
+                    hue+=2;
+                    anim(loop);
+                }();
+            }
+    </script>
+</body>
+</html>
