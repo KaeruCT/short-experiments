@@ -3,9 +3,8 @@
     <style>body,html{font-family:sans-serif;color:#aaa;background:#08000B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
         #info{font-size:4em;margin-top:-2em;position:absolute;top:50%;height:8em;text-align:center;}
-        #player{display:none;}
+        #player{position: absolute;top:-99999px;left:-99999px;}
     </style>
-    <script src="http://www.youtube.com/player_api"></script>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 </head>
 <body>
@@ -35,7 +34,7 @@
             intro = new Audio('intro.ogg'),
             riff = new Audio('bang.ogg'),
             info = document.getElementById('info'),
-            w, h;
+            w, h, player;
 
             function P(p) {
                 this.x = p.x;
@@ -93,16 +92,14 @@
             resize();
 
             function onYouTubePlayerAPIReady() {
-                new YT.Player('player', {
-                    height: 0, width: 0,
+                player = new YT.Player('player', {
                     videoId: 'gzeOWnnSNjg',
-                    autoplay: true,
                     loop: true,
                     events: {
                         onReady: function (e) {
                             e.target.playVideo();
                         },
-                        'onStateChange': function (event) {
+                        onStateChange: function (event) {
                             if (event.data === 1) {
                                 init();
                             }
@@ -203,5 +200,6 @@
                 }();
             }
     </script>
+    <script src="http://www.youtube.com/player_api"></script>
 </body>
 </html>
