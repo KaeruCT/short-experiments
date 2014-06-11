@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{}
+        #stage{background:#000;margin:0 auto;display:block;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            piece,
+            map = [],
+            s = 20,
+            w = 20,
+            h = 30,
+            ffreq = 30,
+            shapes = [
+                [[1, 1, 1], [0, 1, 0]], // t
+                [[1, 1], [1, 1]], // square
+                [[1], [1], [1], [1]], // long line
+                [[0, 1], [0, 1], [1, 1]], // L
+                [[1, 0], [1, 0], [1, 1]], // backwards L
+                [[0, 1, 1], [1, 1, 0]], // s
+                [[1, 1, 0], [0, 1, 1]], // z
+            ],
+            i, j;
+
+            function Piece() {
+                var i, j, color;
+                this.map = shapes[Math.ceil(Math.random()*shapes.length)-1];
+                this.w = this.map[0].length;
+                this.h = this.map.length;
+                this.x = Math.floor(w/2 - this.w/2);
+                this.y = 0;
+                // color
+                color = Math.ceil(Math.random()*3);
+                for (i = 0; i < this.h; i++) {
+                    for (j = 0; j < this.w; j++) {
+                        if (this.map[i][j] === 1) {
+                            this.map[i][j] = color;
+                        }
+                    }
+                }
+            }
+
+            function spawn() {
+                piece = new Piece();
+            }
+
+            function color(n) {
+                var r = n === 1 ? 200 : 60,
+                    g = n === 2 ? 200 : 60,
+                    b = n === 3 ? 200 : 60;
+
+                return 'rgb('+r+','+g+', '+b+')';
+            }
+
+            function empty(val) {
+                return val === 0;
+            }
+
+            function paste() {
+                var x, y;
+                for (i = 0; i < piece.h; i++) {
+                    for (j = 0; j < piece.w; j++) {
+                        x = piece.x+j;
+                        y = piece.y+i;
+                        p = piece.map[i][j];
+                        if (!empty(p)) {
+                            map[y][x] = p;
+                        }
+                    }
+                }
+            }
+
+            function hitcheck(xoff, yoff) {
+                var x, y;
+                for (i = 0; i < piece.h; i++) {
+                    for (j = 0; j < piece.w; j++) {
+                        p = piece.map[i][j];
+                        x = xoff+piece.x+j;
+                        y = yoff+piece.y+i;
+
+                        if (x < 0 || x >= w || y < 0 || y >= h || (!empty(p) && !empty(map[y][x]))) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function moveLeft() {
+                if (!hitcheck(-1, 0)) {
+                    piece.x -= 1;
+                }
+            }
+            function moveRight() {
+                if (!hitcheck(1, 0)) {
+                    piece.x += 1;
+                }
+            }
+            function moveDown() {
+                if (!hitcheck(0, 1)) {
+                    piece.y += 1;
+                    return true;
+                }
+            }
+
+            window.addEventListener('keydown', function (e) {
+                var fns = {
+                    37: moveLeft,
+                    39: moveRight,
+                    40: moveDown
+                };
+
+                if (fns[e.keyCode]) fns[e.keyCode]();
+            });
+
+            function updateMap() {
+                // useless
+                for (i = h-2; i >= 0; i--) {
+                    for (j = 0; j < w; j++) {
+                        if (empty(map[i+1][j]) &&!empty(map[i][j])) {
+                            map[i+1][j] = map[i][j];
+                            map[i][j] = 0;
+                        }
+                    }
+                }
+            }
+
+            c.width = w*s;
+            c.height = h*s;
+
+            // init map
+            for (i = 0; i < h; i++) {
+                map[i] = [];
+                for (j = 0; j < w; j++) {
+                    map[i][j] = 0;
+                }
+            }
+
+            spawn();
+
+            !function loop () {
+                var p;
+
+                ctx.clearRect(0, 0, c.width, c.height);
+
+                // render
+                for (i = 0; i < h; i++) {
+                    for (j = 0; j < w; j++) {
+                        p = map[i][j];
+                        if (!empty(p)) {
+                            ctx.fillStyle = color(p);
+                            ctx.fillRect(j*s, i*s, s-1, s-1);
+                        }
+                    }
+                }
+                for (i = 0; i < piece.h; i++) {
+                    for (j = 0; j < piece.w; j++) {
+                        p = piece.map[i][j];
+                        if (!empty(p)) {
+                            ctx.fillStyle = color(p);
+                            ctx.fillRect(piece.x*s + j*s, piece.y*s + i*s, s-1, s-1);
+                        }
+                    }
+                }
+
+                if (t % ffreq === 0) {
+                    if (!moveDown()) {
+                        paste();
+                        spawn();
+                    }
+                }
+
+                t++;
+
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
