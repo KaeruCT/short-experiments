@@ -21,11 +21,11 @@
             ctx = c.getContext('2d'),
             t = 0,
             piece,
-            map = [],
+            board = [],
             s = 20,
-            w = 20,
+            w = 15,
             h = 30,
-            ffreq = 30,
+            ffreq = 20,
             shapes = [
                 [[1, 1, 1], [0, 1, 0]], // t
                 [[1, 1], [1, 1]], // square
@@ -34,26 +34,7 @@
                 [[1, 0], [1, 0], [1, 1]], // backwards L
                 [[0, 1, 1], [1, 1, 0]], // s
                 [[1, 1, 0], [0, 1, 1]], // z
-            ],
-            i, j;
-
-            function Piece() {
-                var i, j, color;
-                this.map = shapes[Math.ceil(Math.random()*shapes.length)-1];
-                this.w = this.map[0].length;
-                this.h = this.map.length;
-                this.x = Math.floor(w/2 - this.w/2);
-                this.y = 0;
-                // color
-                color = Math.ceil(Math.random()*3);
-                for (i = 0; i < this.h; i++) {
-                    for (j = 0; j < this.w; j++) {
-                        if (this.map[i][j] === 1) {
-                            this.map[i][j] = color;
-                        }
-                    }
-                }
-            }
+            ];
 
             function spawn() {
                 piece = new Piece();
@@ -71,97 +52,186 @@
                 return val === 0;
             }
 
-            function paste() {
-                var x, y;
-                for (i = 0; i < piece.h; i++) {
-                    for (j = 0; j < piece.w; j++) {
-                        x = piece.x+j;
-                        y = piece.y+i;
-                        p = piece.map[i][j];
-                        if (!empty(p)) {
-                            map[y][x] = p;
+            function checkLines() {
+                var full = true, l, i, j;
+
+                function removeLine(l) {
+                    for (i = l; i >= 0; i--) {
+                        for (j = 0; j < w; j++) {
+                            if (i >= 1) {
+                                board[i][j] = board[i-1][j];
+                            }
+                        }
+                    }
+                }
+
+                for (l = 0; l < h; l++) {
+                    for (i = 0; i < w; i++) {
+                        if (empty(board[l][i])) {
+                            full = false;
+                            break;
+                        }
+                    }
+                    if (full) {
+                        removeLine(l);
+                        l -= 1;
+                    }
+                    full = true;
+                }
+            }
+
+            function Piece(piece) {
+                var i, j, color;
+                if (piece) {
+                    this.shape = piece.shape;
+                    this.w = piece.w;
+                    this.h = piece.h;
+                    this.x = piece.x;
+                    this.y = piece.y;
+                    return;
+                }
+                this.shape = shapes[Math.ceil(Math.random()*shapes.length)-1];
+                this.w = this.shape[0].length;
+                this.h = this.shape.length;
+                this.x = Math.floor(w/2 - this.w/2);
+                this.y = 0;
+                color = Math.ceil(Math.random()*3); // randomly choose a color
+                for (i = 0; i < this.h; i++) {
+                    for (j = 0; j < this.w; j++) {
+                        if (this.shape[i][j] === 1) {
+                            this.shape[i][j] = color;
                         }
                     }
                 }
             }
 
-            function hitcheck(xoff, yoff) {
-                var x, y;
-                for (i = 0; i < piece.h; i++) {
-                    for (j = 0; j < piece.w; j++) {
-                        p = piece.map[i][j];
-                        x = xoff+piece.x+j;
-                        y = yoff+piece.y+i;
+            Piece.prototype.rotate = function (board, left) {
+                function rot (piece) {
+                    var rotated = new Piece(piece),
+                        i, j;
+                    rotated.w = piece.h;
+                    rotated.h = piece.w;
+                    rotated.shape = [];
+                    for (i = 0; i < piece.w; i++) {
+                        rotated.shape[i] = [];
+                        for (j = 0; j < piece.h; j++) {
+                            rotated.shape[i][piece.h-1-j] = piece.shape[j][i];
+                        }
+                    }
+                    if (!rotated.checkCollision(board, 0, 0)) {
+                        piece.w = rotated.w;
+                        piece.h = rotated.h;
+                        piece.shape = rotated.shape;
+                    }
+                }
 
-                        if (x < 0 || x >= w || y < 0 || y >= h || (!empty(p) && !empty(map[y][x]))) {
+                if (!left) {
+                    rot(this);
+                    return;
+                }
+
+                var k;
+                for (k = 0; k < 3; k++) {
+                    rot(this); // i am too lazy to figure out how to rotate counter-clockwise
+                }
+            };
+
+            Piece.prototype.paste = function (board) {
+                var x, y;
+                for (i = 0; i < this.h; i++) {
+                    for (j = 0; j < this.w; j++) {
+                        x = this.x+j;
+                        y = this.y+i;
+                        p = this.shape[i][j];
+                        if (!empty(p)) {
+                            board[y][x] = p;
+                        }
+                    }
+                }
+            };
+
+            Piece.prototype.checkCollision = function (board, xoff, yoff) {
+                var x, y;
+                xoff = xoff || 0;
+                yoff = yoff || 0;
+                for (i = 0; i < this.h; i++) {
+                    for (j = 0; j < this.w; j++) {
+                        p = this.shape[i][j];
+                        x = xoff+this.x+j;
+                        y = yoff+this.y+i;
+
+                        if (x < 0 || x >= w || y < 0 || y >= h || (!empty(p) && !empty(board[y][x]))) {
                             return true;
                         }
                     }
                 }
                 return false;
-            }
+            };
 
-            function moveLeft() {
-                if (!hitcheck(-1, 0)) {
-                    piece.x -= 1;
+            Piece.prototype.moveLeft = function () {
+                if (!this.checkCollision(board, -1, 0)) {
+                    this.x -= 1;
                 }
-            }
-            function moveRight() {
-                if (!hitcheck(1, 0)) {
-                    piece.x += 1;
+            };
+            Piece.prototype.moveRight = function () {
+                if (!this.checkCollision(board, 1, 0)) {
+                    this.x += 1;
                 }
-            }
-            function moveDown() {
-                if (!hitcheck(0, 1)) {
-                    piece.y += 1;
+            };
+            Piece.prototype.moveDown = function () {
+                if (!this.checkCollision(board, 0, 1)) {
+                    this.y += 1;
                     return true;
+                } else {
+                    this.paste(board);
+                    spawn();
                 }
-            }
+            };
+            Piece.prototype.drop = function () {
+                while (this.moveDown()) {}
+            };
+            Piece.prototype.rotateLeft = function () {
+                this.rotate(board, true);
+            };
+            Piece.prototype.rotateRight = function () {
+                this.rotate(board);
+            };
 
             window.addEventListener('keydown', function (e) {
-                var fns = {
-                    37: moveLeft,
-                    39: moveRight,
-                    40: moveDown
-                };
-
-                if (fns[e.keyCode]) fns[e.keyCode]();
-            });
-
-            function updateMap() {
-                // useless
-                for (i = h-2; i >= 0; i--) {
-                    for (j = 0; j < w; j++) {
-                        if (empty(map[i+1][j]) &&!empty(map[i][j])) {
-                            map[i+1][j] = map[i][j];
-                            map[i][j] = 0;
-                        }
-                    }
+                switch (e.keyCode) {
+                case 37: case 65: piece.moveLeft(); break;
+                case 39: case 68: piece.moveRight(); break;
+                case 40: case 83: piece.moveDown(); break;
+                case 88: piece.rotateLeft(); break;
+                case 67: case 38: piece.rotateRight(); break;
+                case 32: piece.drop(); break;
                 }
-            }
+            });
 
             c.width = w*s;
             c.height = h*s;
 
-            // init map
+            // init board
+            var i, j;
             for (i = 0; i < h; i++) {
-                map[i] = [];
+                board[i] = [];
                 for (j = 0; j < w; j++) {
-                    map[i][j] = 0;
+                    board[i][j] = 0;
                 }
             }
-
+            board[h-3]=[1,1,1,1,1,1,0,1,1,1,1,1,1,1,1];
+            board[h-1]=[1,1,1,1,1,1,0,1,1,1,1,1,1,1,1];
             spawn();
 
             !function loop () {
-                var p;
+                var p, i, j;
 
                 ctx.clearRect(0, 0, c.width, c.height);
 
                 // render
                 for (i = 0; i < h; i++) {
                     for (j = 0; j < w; j++) {
-                        p = map[i][j];
+                        p = board[i][j];
                         if (!empty(p)) {
                             ctx.fillStyle = color(p);
                             ctx.fillRect(j*s, i*s, s-1, s-1);
@@ -170,7 +240,7 @@
                 }
                 for (i = 0; i < piece.h; i++) {
                     for (j = 0; j < piece.w; j++) {
-                        p = piece.map[i][j];
+                        p = piece.shape[i][j];
                         if (!empty(p)) {
                             ctx.fillStyle = color(p);
                             ctx.fillRect(piece.x*s + j*s, piece.y*s + i*s, s-1, s-1);
@@ -179,9 +249,8 @@
                 }
 
                 if (t % ffreq === 0) {
-                    if (!moveDown()) {
-                        paste();
-                        spawn();
+                    if (piece.moveDown()) {
+                        checkLines();
                     }
                 }
 
