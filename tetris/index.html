@@ -27,25 +27,18 @@
             h = 30,
             ffreq = 20,
             shapes = [
-                [[1, 1, 1], [0, 1, 0]], // t
-                [[1, 1], [1, 1]], // square
-                [[1], [1], [1], [1]], // long line
+                [[1], [1], [1], [1]], // I
+                [[1, 0], [1, 0], [1, 1]], // J
                 [[0, 1], [0, 1], [1, 1]], // L
-                [[1, 0], [1, 0], [1, 1]], // backwards L
-                [[0, 1, 1], [1, 1, 0]], // s
-                [[1, 1, 0], [0, 1, 1]], // z
-            ];
+                [[1, 1], [1, 1]], // O
+                [[0, 1, 1], [1, 1, 0]], // S
+                [[1, 1, 1], [0, 1, 0]], // T
+                [[1, 1, 0], [0, 1, 1]] // Z
+            ],
+            colors = ['#aaaa00', '#c0c0c0', '#aa00aa', '#0000aa', '#00aa00', '#aa5500', '#00aaaa'];
 
             function spawn() {
                 piece = new Piece();
-            }
-
-            function color(n) {
-                var r = n === 1 ? 200 : 60,
-                    g = n === 2 ? 200 : 60,
-                    b = n === 3 ? 200 : 60;
-
-                return 'rgb('+r+','+g+', '+b+')';
             }
 
             function empty(val) {
@@ -55,11 +48,15 @@
             function checkLines() {
                 var full = true, l, i, j;
 
-                function removeLine(l) {
+                function clearLine(l) {
                     for (i = l; i >= 0; i--) {
                         for (j = 0; j < w; j++) {
                             if (i >= 1) {
                                 board[i][j] = board[i-1][j];
+                                if (i === l-1 && l < h && empty(board[i+1][j])) {
+                                    board[i+1][j] = board[i][j];
+                                    board[i][j] = 0;
+                                }
                             }
                         }
                     }
@@ -73,7 +70,7 @@
                         }
                     }
                     if (full) {
-                        removeLine(l);
+                        clearLine(l);
                         l -= 1;
                     }
                     full = true;
@@ -81,7 +78,7 @@
             }
 
             function Piece(piece) {
-                var i, j, color;
+                var n = Math.floor(Math.random()*shapes.length), i, j;
                 if (piece) {
                     this.shape = piece.shape;
                     this.w = piece.w;
@@ -90,16 +87,15 @@
                     this.y = piece.y;
                     return;
                 }
-                this.shape = shapes[Math.ceil(Math.random()*shapes.length)-1];
+                this.shape = shapes[n];
                 this.w = this.shape[0].length;
                 this.h = this.shape.length;
                 this.x = Math.floor(w/2 - this.w/2);
                 this.y = 0;
-                color = Math.ceil(Math.random()*3); // randomly choose a color
                 for (i = 0; i < this.h; i++) {
                     for (j = 0; j < this.w; j++) {
                         if (this.shape[i][j] === 1) {
-                            this.shape[i][j] = color;
+                            this.shape[i][j] = n + 1; // 0 is empty
                         }
                     }
                 }
@@ -233,7 +229,7 @@
                     for (j = 0; j < w; j++) {
                         p = board[i][j];
                         if (!empty(p)) {
-                            ctx.fillStyle = color(p);
+                            ctx.fillStyle = colors[p-1];
                             ctx.fillRect(j*s, i*s, s-1, s-1);
                         }
                     }
@@ -242,7 +238,7 @@
                     for (j = 0; j < piece.w; j++) {
                         p = piece.shape[i][j];
                         if (!empty(p)) {
-                            ctx.fillStyle = color(p);
+                            ctx.fillStyle = colors[p-1];
                             ctx.fillRect(piece.x*s + j*s, piece.y*s + i*s, s-1, s-1);
                         }
                     }
