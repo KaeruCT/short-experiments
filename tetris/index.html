@@ -2,7 +2,7 @@
 <head>
     <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{}
-        #stage{background:#000;margin:0 auto;display:block;}
+        #stage{background:#060606;margin:0 auto;display:block;}
         #info{font-size:.9em;padding:10px;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -23,8 +23,8 @@
             piece,
             board = [],
             s = 20,
-            w = 15,
-            h = 30,
+            w = 10,
+            h = 20,
             ffreq = 20,
             shapes = [
                 [[1], [1], [1], [1]], // I
@@ -46,32 +46,30 @@
             }
 
             function checkLines() {
-                var full = true, l, i, j;
+                var cleared = 0,
+                    full = true,
+                    y, x;
 
                 function clearLine(l) {
-                    for (i = l; i >= 0; i--) {
-                        for (j = 0; j < w; j++) {
-                            if (i >= 1) {
-                                board[i][j] = board[i-1][j];
-                                if (i === l-1 && l < h && empty(board[i+1][j])) {
-                                    board[i+1][j] = board[i][j];
-                                    board[i][j] = 0;
-                                }
-                            }
+                    var y, x;
+                    for (y = l; y >= 1; y--) {
+                        for (x = 0; x < w; x++) {
+                            board[y][x] = board[y-1][x];
                         }
                     }
                 }
 
-                for (l = 0; l < h; l++) {
-                    for (i = 0; i < w; i++) {
-                        if (empty(board[l][i])) {
+                for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                        if (empty(board[y][x])) {
                             full = false;
                             break;
                         }
                     }
                     if (full) {
-                        clearLine(l);
-                        l -= 1;
+                        clearLine(y);
+                        cleared += 1;
+                        y -= 1;
                     }
                     full = true;
                 }
@@ -215,8 +213,7 @@
                     board[i][j] = 0;
                 }
             }
-            board[h-3]=[1,1,1,1,1,1,0,1,1,1,1,1,1,1,1];
-            board[h-1]=[1,1,1,1,1,1,0,1,1,1,1,1,1,1,1];
+
             spawn();
 
             !function loop () {
