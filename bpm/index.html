@@ -64,7 +64,7 @@
             q.addEventListener('DOMMouseScroll', scroll);
             q.addEventListener('resize', resize);
             q.addEventListener('click', click);
-            q.addEventListener('mousedown', click);
+            q.addEventListener('keydown', click);
             
             function shuffle(o) {
                 for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
