@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id="info"></div>
+    <canvas id="stage"></canvas>
+    <audio src="oggo.ogg" loop/>
+    <script>
+        var q = window,
+            BEAT_COLORS = [
+              1,0,2,0, // kick silence snare silence
+              1,0,2,3, // kick silence snare hat
+              1,0,2,4,
+              1,0,3,0
+            ],
+            BPM = 125,
+            TEMPO = 4,
+            MAX_POPS_LENGTH = 32,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0, prevt = 0, // t = global timer,
+            bpmt = 0,
+            bci = 0, // beat colors index
+            colors = [], // computed beat colors
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            paused = true,
+            audio = document.querySelector('audio'),
+            pops = [], // circly things
+            w, h;
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+              
+            }
+            function scroll(e) {
+
+            }
+            
+            function click(e) {
+              paused = !paused;
+              if (paused) audio.pause();
+              else audio.play();
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize', resize);
+            q.addEventListener('click', click);
+            
+            function shuffle(o) {
+                for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+                return o;
+            };
+            
+            function bpm2ms(bpm) {
+              return 60*1000/bpm;
+            }
+
+            function color(i) { // this function is random but caches its result
+              if (colors[i]) return new Color(colors[i]);
+              
+              function Color(color) {
+                color = color || {};
+                var rnd = shuffle([20, 120, 60]);
+                this.r = color.r || rnd[0];
+                this.g = color.g || rnd[1];
+                this.b =  color.b || rnd[2];
+                this.a = 1;
+                this.str = function () {
+                  return 'rgba('+this.r+','+this.g+', '+this.b+','+this.a+')';;
+                };
+              }
+              var color = new Color();
+              colors[i] = color;
+              return color;
+            }
+            
+            function update(dt) {
+              bpmt += dt;
+              if (bpmt >= bpm2ms(BPM/TEMPO*BEAT_COLORS.length) || bpmt === 0) {
+                pops.push(pops[pops.length-1]+1||0);
+                if (pops.length == MAX_POPS_LENGTH) pops.shift();
+                
+                bpmt = 0;
+                var bcolor = BEAT_COLORS[bci];
+                if (bcolor !== 0) { // skip 0s
+                  obj.push({
+                    x: w/2, y: h/2,
+                    r: 16,
+                    color: color(bcolor)
+                  });
+                }
+                bci++;
+                if (bci == BEAT_COLORS.length) bci = 0;
+              }
+              obj.forEach(function (p) {
+                p.r += 5;
+                p.color.a -= 0.01;
+                if (p.color.a <= 0) {
+                  p.dead = true;
+                  return;
+                }
+              });
+              obj = obj.filter(function (p) {
+                return !p.dead;
+              });
+            }
+            
+            function render() {
+              var pl = (MAX_POPS_LENGTH/2);
+              ctx.clearRect(0, 0, w, h);
+              // render
+              obj.forEach(function (p) {
+                ctx.beginPath();
+                ctx.fillStyle = p.color.str();
+                ctx.strokeStyle = 'rgba(255,255,255,'+(p.color.a/2)+')';
+                ctx.arc(p.x, p.y, p.r, 0, pi2);
+                ctx.fill();
+                ctx.stroke();
+                pops.forEach(function (n) {
+                  ctx.beginPath();
+                  ctx.arc(p.x + Math.cos(n*pi/pl)*p.r, p.y + Math.sin(n*pi/pl)*p.r, w/p.r, 0, pi2);
+                  ctx.stroke();
+                });
+              });
+            }
+
+            resize();
+            
+            click();
+            !function loop () {
+                var now = new Date().valueOf();
+                dt = prevt ? now - prevt : 0;
+                t += dt;
+                if (!paused) {
+                  update(dt);
+                  render(dt);
+                }
+                anim(loop);
+                prevt = now;
+            }();
+    </script>
+</body>
+</html>
