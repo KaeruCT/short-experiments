@@ -7,9 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 </head>
 <body>
-    <div id="info">click or press space</div>
+    <h1 id="loading">Loading...</h1>
+    <div id="info" style="display: none;">click or press space</div>
     <canvas id="stage"></canvas>
-    <audio src="spaceneedle.ogg" loop/>
+    <audio src="spaceneedle.ogg" loop oncanplaythrough="click(); loading.style.display='none';"/>
     <script>
         var q = window,
             BEAT_COLORS = [
@@ -38,6 +39,7 @@
             paused = true,
             audio = document.querySelector('audio'),
             info = document.querySelector('#info'),
+            loading = document.querySelector('#loading'),
             pops = [], // circly things
             bars = 0, // bar counter
             w, h;
