@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38402B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
         #info{font-size:.9em;padding:10px;}
     </style>
@@ -46,11 +46,16 @@
 
             resize();
 
+            var lastSize = 0;
             !function loop () {
-                var objs = gen.step();
-                ctx.clearRect(0, 0, w, h);
-                // render
-                renderer.render(ctx, objs, w, h);
+                var state = gen.step();
+
+                if (lastSize !== state.objs.length) {
+                  lastSize = state.objs.length;
+                  ctx.clearRect(0, 0, w, h);
+                  renderer.render(ctx, state, w, h);
+                }
+
                 t++;
                 anim(loop);
             }();
