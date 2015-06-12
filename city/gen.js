@@ -1,32 +1,6 @@
-window.r = new Math.seedrandom('raindrops');
-
-var randBool = function () {
-  return r() > 0.5;
-};
-
-var randRange = function () {
-  var args = Array.prototype.slice.call(arguments);
-  var max = Math.max.apply(null, args);
-  var min = Math.min.apply(null, args);
-  if (min === max) return min;
-  return Math.floor(r() * (max - min + 1)) + min;
-};
-
-var randValue = function (obj) {
-  var keys = Object.keys(obj);
-  return obj[keys[randRange(0, keys.length-1)]];
-}
-
-var rectIntersect = function (r1, r2) {
-  return !(r2.x > r1.x + r1.w ||
-           r2.x + r2.w < r1.x ||
-           r2.y > r1.y + r1.h ||
-           r2.y + r2.h < r1.y);
-}
-
 window.Generator = (function() {
   var MapObject = function (obj, withParts) {
-    var minPartSize = 5;
+    var minPartSize = 10;
     this.x = obj.x || 0;
     this.y = obj.y || 0;
     this.w = obj.w || 0;
@@ -62,33 +36,27 @@ window.Generator = (function() {
   var Generator = function () {
     this.map = {};
     this.objs = [];
-    this.expandRadius = 100;
-    this.minObjSize = 10;
-    this.maxObjSize = 30; // should be kept way lower than chunk size
-    this.minBetweenObj = 10;
-    this.chunkSize = 100;
+    this.expandRadius = 300;
+    this.minObjSize = 20;
+    this.maxObjSize = 50; // should be kept way lower than chunk size
+    this.minBetweenObj = 5;
+    this.chunkSize = 200;
   };
 
   Generator.prototype = {
     step: function () {
-      if (this.objs.length !== 0 && randBool()) {
-        // place something next to something else
-        var obj = this.findRandObj().getCenter();
-        var newObj = new MapObject(this.randObjSize(), true).setCoords(this.radiusRange(obj));
-        if (!this.onChunkEdge(newObj) && this.collidingObj(newObj) === null) {
-          this.place(newObj);
-        }
-      } else {
-        // place something within expand radius of random
-        var coords = {x: 0, y: 0};
-        if (this.objs.length !== 0) {
-          coords = this.findRandObj();
-        }
-        var newObj = new MapObject(this.randObjSize(), true).setCoords(this.radiusRange(coords));
+      var coords = {x: 0, y: 0};
+      if (this.objs.length !== 0) {
+        coords = this.findRandObj().getCenter();
+      }
+      var newObj = new MapObject(this.randObjSize(), true).setCoords(this.radiusRange(coords));
 
-        if (!this.onChunkEdge(newObj) && this.collidingObj(newObj) === null) {
-          this.place(newObj);
-        }
+      if (!this.onChunkEdge(newObj) && this.collidingObj(newObj) === null) {
+        this.place(newObj);
+      }
+
+      if (randBool()) {
+
       }
 
       return this;
@@ -129,8 +97,8 @@ window.Generator = (function() {
 
     radiusRange: function (coords) {
       return {
-        x: randRange(coords.x, this.expandRadius * 2) - this.expandRadius,
-        y: randRange(coords.y, this.expandRadius * 2) - this.expandRadius
+        x: randRange(coords.x - this.expandRadius, coords.x + this.expandRadius),
+        y: randRange(coords.y - this.expandRadius, coords.y + this.expandRadius)
       };
     },
 

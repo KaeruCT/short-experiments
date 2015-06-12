@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{font-family:sans-serif;color:#aaa;background:#38402B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
         #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
         #info{font-size:.9em;padding:10px;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="http://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.0/seedrandom.min.js"></script>
-    <script type="text/javascript" src="gen.js"></script>
-    <script type="text/javascript" src="renderer.js"></script>
+    <script src="util.js"></script>
+    <script src="gen.js"></script>
+    <script src="renderer.js"></script>
+    <script src="canvaszoom.js"></script>
 </head>
 <body>
     <div id=info></div>
     <canvas id=stage></canvas>
     <script>
+        window.r = new Math.seedrandom('montegoslay');
         var q = window,
             anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
             q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
@@ -25,36 +28,66 @@
             pi = Math.PI,
             pi2 = Math.PI*2,
             w, h,
-            gen = new Generator();
+            gen = new Generator(),
+            lastX, lastY,
+        		dragStart, dragged, scaleFactor = 1.1, lastSize = 0;
 
             function resize () {
                 w = q.innerWidth || e.clientWidth || b.clientWidth;
                 h = q.innerHeight || e.clientHeight || b.clientHeight;
                 c.width = w;
                 c.height = h;
+                lastX = c.width/2;
+                lastY = c.height/2;
             }
 
-            function mousemove(e) {
-            }
-            function scroll(e) {
+            function scroll (evt){
+        			var delta = evt.wheelDelta ? evt.wheelDelta/40 : evt.detail ? -evt.detail : 0;
+        			if (delta) zoom(delta);
+        			return evt.preventDefault() && false;
+        		}
 
-            }
-            q.addEventListener('mousemove', mousemove);
+        		c.addEventListener('mousedown', function(evt) {
+        			document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+        			lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+        			lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+        			dragStart = ctx.transformedPoint(lastX,lastY);
+        			dragged = false;
+        		});
+        		c.addEventListener('mousemove', function(evt) {
+        			lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+        			lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+        			dragged = true;
+        			if (dragStart) {
+        				var pt = ctx.transformedPoint(lastX,lastY);
+        				ctx.translate(pt.x-dragStart.x,pt.y-dragStart.y);
+        			}
+        		});
+        		c.addEventListener('mouseup', function(evt) {
+        			dragStart = null;
+        			if (!dragged) zoom(evt.shiftKey ? -1 : 1 );
+        		});
+
+        		function zoom (clicks) {
+        			var pt = ctx.transformedPoint(lastX,lastY);
+        			ctx.translate(pt.x,pt.y);
+        			var factor = Math.pow(scaleFactor,clicks);
+        			ctx.scale(factor,factor);
+        			ctx.translate(-pt.x,-pt.y);
+        		}
+
             q.addEventListener('mousewheel', scroll);
             q.addEventListener('DOMMouseScroll', scroll);
-            q.addEventListener('resize',resize);
-
             resize();
 
-            var lastSize = 0;
+            trackTransforms(ctx);
+
             !function loop () {
                 var state = gen.step();
-
-                if (lastSize !== state.objs.length) {
-                  lastSize = state.objs.length;
-                  ctx.clearRect(0, 0, w, h);
-                  renderer.render(ctx, state, w, h);
-                }
+                var p1 = ctx.transformedPoint(0,0);
+                var p2 = ctx.transformedPoint(w,h);
+		            ctx.clearRect(p1.x,p1.y,p2.x-p1.x,p2.y-p1.y);
+                renderer.render(ctx, state, w, h);
 
                 t++;
                 anim(loop);
