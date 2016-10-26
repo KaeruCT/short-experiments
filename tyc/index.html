@@ -5,6 +5,7 @@
         #info{font-size:.9em;padding:10px;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <script src="https://www.youtube.com/player_api"></script>
 </head>
 <body>
     <div id=info></div>
@@ -23,7 +24,7 @@
             pi2 = Math.PI*2,
             obj = [],
             w, h, order = 0;
-            
+
         var g = {
           d: 0, r: 10, color: '#14bdeb',
           sats: [
@@ -62,24 +63,24 @@
             var r = Math.floor(120+n*55),
                 g = Math.floor(110+n*105),
                 b = Math.floor(100+n*155);
-                
+
             return 'rgb('+r+','+g+', '+b+')';
         }
-        
+
         function circlefill(x, y, r, color) {
           ctx.beginPath();
           ctx.fillStyle = color;
           ctx.arc(x, y, r, 0, pi2);
           ctx.fill();
         }
-        
+
         function circle(x, y, r, color) {
           ctx.beginPath();
           ctx.strokeStyle = color;
           ctx.arc(x, y, r, 0, pi2);
           ctx.stroke();
         }
-        
+
         function text(x, y, text, color) {
           ctx.beginPath();
           ctx.font = '14px sans-serif';
@@ -88,7 +89,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText(text, x, y);
         }
-        
+
         function line(x1, y1, x2, y2, color) {
           ctx.beginPath();
           ctx.strokeStyle = color;
@@ -96,7 +97,7 @@
           ctx.lineTo(x2, y2);
           ctx.stroke();
         }
-        
+
         function renderBody(body, parent, i) {
           i = i || 0;
           var total = parent.sats.length;
@@ -105,22 +106,22 @@
 
           body.x = (parent.x || w/2) + Math.cos(offset * m) * (parent.r + body.d);
           body.y = (parent.y || h/2) + Math.sin(offset * m) * (parent.r + body.d);
-          
+
           // render orbit
           circle(parent.x, parent.y, parent.r + body.d, '#2a2a2a');
-          
+
           // render kids
           if (body.sats) {
             body.sats.forEach(function (sat, i) {
               renderBody(sat, body, i);
             });
           }
-          
+
           // render body
           if (body.shine) {
             ctx.shadowBlur = 8;
             ctx.shadowColor = body.color;
-          } 
+          }
           circlefill(body.x, body.y, body.r, body.color);
           ctx.shadowBlur = 0;
         }
@@ -132,7 +133,20 @@
             t++;
             anim(loop);
         }());
-      
+
+    </script>
+    <script>
+    function onYouTubePlayerAPIReady() {
+      var player = new YT.Player('player', {
+        videoId: 'MEV1KnBbjU4',
+        loop: true,
+        events: {
+          onReady: function (e) {
+            e.target.playVideo();
+          }
+        }
+      });
+    }
     </script>
 </body>
 </html>
