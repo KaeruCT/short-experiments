@@ -5,7 +5,6 @@
         #info{font-size:.9em;padding:10px;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <script src="https://www.youtube.com/player_api"></script>
 </head>
 <body>
     <div id=info></div>
@@ -22,11 +21,10 @@
             t = 0,
             pi = Math.PI,
             pi2 = Math.PI*2,
-            obj = [],
-            w, h, order = 0;
+            w, h, stars = [];
 
         var g = {
-          d: 0, r: 10, color: '#14bdeb',
+          d: 0, r: 10, color: '#14bdeb', shine: true,
           sats: [
             {r: 3, d: 10, color: '#ddd', shine: true},
             {
@@ -42,17 +40,32 @@
           ]
         };
 
+        function rand(d) {
+          return Math.floor(Math.random() * d);
+        }
+
         function resize () {
             w = q.innerWidth || e.clientWidth || b.clientWidth;
             h = q.innerHeight || e.clientHeight || b.clientHeight;
             c.width = w;
             c.height = h;
-        }
 
+            // seed stars
+            stars = (function () {
+              var s = 30;
+              var stars = [];
+              var x, y;
+              for (x = 0; x < w; x += s) {
+                for (y = 0; y < h; y += s) {
+                  stars[rand(10) > 5 ? 'push' : 'unshift']([x + rand(s), y + rand(s)]);
+                }
+              }
+              return stars;
+            }());
+        }
         function mousemove(e) {
         }
         function scroll(e) {
-
         }
         q.addEventListener('mousemove', mousemove);
         q.addEventListener('mousewheel', scroll);
@@ -119,7 +132,8 @@
 
           // render body
           if (body.shine) {
-            ctx.shadowBlur = 8;
+            var blur = 8 + Math.floor(Math.abs(Math.cos(t*0.02)*body.r*3));
+            ctx.shadowBlur = blur;
             ctx.shadowColor = body.color;
           }
           circlefill(body.x, body.y, body.r, body.color);
@@ -127,14 +141,28 @@
         }
 
         resize();
+
         (function loop () {
             ctx.clearRect(0, 0, w, h);
+            // render stars
+            stars.forEach(function (s, i) {
+              var x = s[0] + Math.cos((t + i) * 0.02);
+              var y = s[1] + Math.sin((t + i) * 0.02);
+              var r = i % 10 === 0 ? 1.5 : 0.7;
+
+              circlefill(x, y, r, 'rgba(255, 255 , 255,' + (0.1 + (0.3 * Math.abs(Math.sin(t + i)))) + ')');
+            });
+
+            // render bodies
             renderBody(g, {sats: [g], r: 0});
             t++;
             anim(loop);
         }());
 
     </script>
+
+    <div id="player" style="position: absolute; top: -9999px; left: -9999px;"></div>
+    <script src="https://www.youtube.com/player_api"></script>
     <script>
     function onYouTubePlayerAPIReady() {
       var player = new YT.Player('player', {
