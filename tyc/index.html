@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#222;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            w, h, order = 0;
+            
+        var g = {
+          d: 0, r: 10, color: '#14bdeb',
+          sats: [
+            {r: 3, d: 10, color: '#ddd', shine: true},
+            {
+              r: 15, d: 80, color: '#ffc857', shine: true,
+              sats: [
+                {r: 3, d: 30, color: '#fe9b4a'},
+                {r: 5, d: 50, color: '#8ff7a7'},
+                {r: 10, d: 80, color: '#bc4b51'},
+                {r: 12, d: 200, color: '#cec690'},
+                {r: 13, d: 240, color: '#b2593e'},
+              ]
+            }
+          ]
+        };
+
+        function resize () {
+            w = q.innerWidth || e.clientWidth || b.clientWidth;
+            h = q.innerHeight || e.clientHeight || b.clientHeight;
+            c.width = w;
+            c.height = h;
+        }
+
+        function mousemove(e) {
+        }
+        function scroll(e) {
+
+        }
+        q.addEventListener('mousemove', mousemove);
+        q.addEventListener('mousewheel', scroll);
+        q.addEventListener('DOMMouseScroll', scroll);
+        q.addEventListener('resize',resize);
+
+        function color(n) { // n => between 0 and 1
+            var r = Math.floor(120+n*55),
+                g = Math.floor(110+n*105),
+                b = Math.floor(100+n*155);
+                
+            return 'rgb('+r+','+g+', '+b+')';
+        }
+        
+        function circlefill(x, y, r, color) {
+          ctx.beginPath();
+          ctx.fillStyle = color;
+          ctx.arc(x, y, r, 0, pi2);
+          ctx.fill();
+        }
+        
+        function circle(x, y, r, color) {
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.arc(x, y, r, 0, pi2);
+          ctx.stroke();
+        }
+        
+        function text(x, y, text, color) {
+          ctx.beginPath();
+          ctx.font = '14px sans-serif';
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, x, y);
+        }
+        
+        function line(x1, y1, x2, y2, color) {
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+        
+        function renderBody(body, parent, i) {
+          i = i || 0;
+          var total = parent.sats.length;
+          var offset = pi2/total;
+          var m = t * 0.01 * (total-i);
+
+          body.x = (parent.x || w/2) + Math.cos(offset * m) * (parent.r + body.d);
+          body.y = (parent.y || h/2) + Math.sin(offset * m) * (parent.r + body.d);
+          
+          // render orbit
+          circle(parent.x, parent.y, parent.r + body.d, '#2a2a2a');
+          
+          // render kids
+          if (body.sats) {
+            body.sats.forEach(function (sat, i) {
+              renderBody(sat, body, i);
+            });
+          }
+          
+          // render body
+          if (body.shine) {
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = body.color;
+          } 
+          circlefill(body.x, body.y, body.r, body.color);
+          ctx.shadowBlur = 0;
+        }
+
+        resize();
+        (function loop () {
+            ctx.clearRect(0, 0, w, h);
+            renderBody(g, {sats: [g], r: 0});
+            t++;
+            anim(loop);
+        }());
+      
+    </script>
+</body>
+</html>
