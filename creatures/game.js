@@ -5,7 +5,7 @@ var game = (function () {
     var s = UNIT; // render pixel size
     var w = DIM;
     var h = DIM;
-    var mx, my; // normalized mouse coords
+    var m = {x: 0, y: 0}; // normalized mouse coords
     var ctx; // canvas ctx
 
     var places = [];
@@ -13,6 +13,7 @@ var game = (function () {
     var focusedPlace = null;
     var focusedCreature = null;
     var generalInfo, logInfo, placeInfo, creatureInfo;
+    var paused = true;
 
     function norm(coord) {
       return Math.floor(coord/s);
@@ -27,7 +28,9 @@ var game = (function () {
     }
 
     function label(title, value) {
-      return '<div>' + title + ': ' + value + '</div>';
+      var str= '<div class="label">' + title + ':</div><div class="label-v">' + value + '</div>';
+      str += '<div class="clear"></div>';
+      return str;
     }
 
     function creatureDesc(c) {
@@ -48,8 +51,7 @@ var game = (function () {
       c.style.height = (h*s)+"px";
 
       c.onmousemove = function (e) {
-        mx = norm(e.offsetX);
-        my = norm(e.offsetY);
+        m = {x: norm(e.offsetX), y: norm(e.offsetY)};
       };
     };
 
@@ -57,8 +59,11 @@ var game = (function () {
       ctx.clearRect(0, 0, w*s, h*s);
 
       places.forEach(function (p) {
-        if (circleContains(p.x, p.y, p.radius, mx, my)) {
-          focusedPlace = p;
+        if (circleContains(p.x, p.y, p.radius, m.x, m.y)) {
+          if (!focusedPlace || distance(p, m) < distance(focusedPlace, m)) {
+            // get closest place
+            focusedPlace = p;
+          }
         }
 
         ctx.fillStyle = '#030';
@@ -85,8 +90,11 @@ var game = (function () {
       }
 
       creatures.forEach(function (c) {
-        if (circleContains(c.x, c.y, NEARNESS, mx, my)) {
-          focusedCreature = c;
+        if (circleContains(c.x, c.y, NEARNESS, m.x, m.y)) {
+          if (!focusedCreature || distance(c, m) < distance(focusedCreature, m)) {
+            // get closest creature
+            focusedCreature = c;
+          }
         }
 
         if (c.gender === 'M') {
@@ -112,8 +120,9 @@ var game = (function () {
         ctx.arc(c.x*s, c.y*s, s/2+0.5, 0, 2*Math.PI, false);
         ctx.stroke();
 
+        // TODO: bars
         var str = title(creatureDesc(c));
-        str += label('Age', time-c.born);
+        str += label('Age', formatDuration(time-c.born));
         str += label('Happiness', c.happiness.toFixed(2));
         str += label('Health', c.health.toFixed(2));
         str += label('Fullness', c.fullness.toFixed(2));
@@ -123,10 +132,9 @@ var game = (function () {
         str += label('Settled', c.settled ? 'At ' + c.place.name : 'No');
         str += label('Pregnant', c.partner ? 'From ' + creatureDesc(c.partner) : 'No');
         if (c.partner) {
-          var left = moment.utc(moment.duration(c.pregnancy.timeLeft(), 'seconds').asMilliseconds()).format('DDD HH:mm:ss');
-          str += label('Due in', left);
+          str += label('Due in', formatDuration(c.pregnancy.timeLeft()));
         }
-        str += label('Status', c.status);
+        str += '<div class="status">' + c.status + '</div>';
         creatureInfo.innerHTML = str;
       } else {
         creatureInfo.innerHTML = '';
@@ -179,6 +187,9 @@ var game = (function () {
     };
 
     exports.tick = function () {
+      if (paused) {
+        return;
+      }
       creatures.forEach(function (c) {
         c.tick();
       });
@@ -219,7 +230,12 @@ var game = (function () {
 
     exports.getTime = function () {
       return time;
-    }
+    };
+
+    exports.togglePause = function () {
+      paused = !paused;
+      return paused;
+    };
 
     return exports;
 }());

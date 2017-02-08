@@ -7,6 +7,14 @@ window.onload = function () {
       logInfo: document.getElementById('log')
     });
 
+
+    var pauseBtn = document.getElementById('pause');
+    pauseBtn.onclick = function (e) {
+      e && e.preventDefault();
+      pauseBtn.innerText = game.togglePause() ? 'Resume' : 'Pause';
+    };
+    pauseBtn.onclick();
+
     for (var i = 0; i < 50; i++) {
       var gender = randv(GENDERS);
       game.addCreature({

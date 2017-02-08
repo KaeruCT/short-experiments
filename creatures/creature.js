@@ -8,9 +8,11 @@ var Creature = function (opts, game) {
   this.y = opts.y || 0;
 
   this.happiness = 0;
-  this.health = MAX/2;
   this.fullness = MAX/2; // eat food to fill
-  this.energy = MAX/2; // sleep to fill back
+  this.maxHealth = SPECIES[opts.species].maxHealth || MAX;
+  this.maxEnergy = SPECIES[opts.species].maxEnergy || MAX;
+  this.energy = this.maxEnergy/2; // sleep to fill back
+  this.health = this.maxHealth/2;
   this.speed = SPECIES[opts.species].speed // speed might increment later
 
   this.asleep = false;
@@ -92,13 +94,15 @@ Creature.prototype = {
       }
     }
 
-    if (this.settled && this.emigrating.check()) {
+    if (!this.partner && this.settled && this.emigrating.check()) {
+      // do not leave places if prenant (this.partner)
       this.leavePlace();
       this.emigrating.set();
     }
   },
   moveTo: function (target) {
     var angle = Math.atan2(target.y - this.y, target.x - this.x);
+    angle += (Math.PI/8)*(Math.random()-Math.random());
     this.x += Math.cos(angle) / UNIT * this.speed;
     this.y += Math.sin(angle) / UNIT * this.speed;
   },
@@ -213,6 +217,7 @@ Creature.prototype = {
 
         c.emit('almost got eaten by ', this);
         c.happiness += 10;
+        c.health -= MAX/100;
         c.energy -= MAX/100;
       } else {
         this.eat(c);
@@ -256,9 +261,9 @@ Creature.prototype = {
   },
   sleep: function () {
     // sleep will recharge energy at 2/3
-    this.energy += (MAX * TIME_STEP / DAY) * 2/3;
+    this.energy += (this.maxEnergy * TIME_STEP / DAY) * 2/3;
 
-    if (this.energy >= MAX) {
+    if (this.energy >= this.maxEnergy) {
       this.asleep = false;
       this.happiness += 1;
       this.emit('woke up');
@@ -279,10 +284,12 @@ Creature.prototype = {
     this.emit('fell asleep');
   },
   die: function () {
-    this.health = 0;
-    this.leavePlace();
-    this.emit('died');
-    this.dead = true;
+    if (!this.dead) {
+      this.health = 0;
+      this.leavePlace();
+      this.emit('died');
+      this.dead = true;
+    }
   },
   emit: function (description, c) {
     this.game.emit(this, c, description);
