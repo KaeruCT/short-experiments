@@ -10,9 +10,20 @@ function distance(p1, p2) {
   return Math.hypot(p1.x-p2.x, p1.y-p2.y);
 }
 
-function formatDuration(seconds) {
-  // TODO: show days properly...
-  return moment.utc(moment.duration(seconds, 'seconds').asMilliseconds()).format('HH:mm:ss')
+function formatDuration(value) {
+  function s (val) {
+    return s === 1 ? '' : 's';
+  }
+  var days = Math.floor(value/86400);
+  value = value%86400;
+  var hours = Math.floor(value/3600);
+  value = value%3600;
+  var minutes = Math.floor(value/60);
+  value = value%60;
+  return (days ? days + ' day' + s(days) + ' ' : '')
+       + (hours + ' hour' + s(hours) + ' ')
+       + (minutes + ' minute' + s(minutes) + ' ')
+       + (value ? value + 's' : '');
 }
 
 function remove(arr, el) {

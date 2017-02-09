@@ -1,4 +1,5 @@
 var Creature = function (opts, game) {
+  var species = SPECIES[opts.species];
   this.game = game;
   this.name = opts.name;
   this.born = 0;
@@ -9,11 +10,12 @@ var Creature = function (opts, game) {
 
   this.happiness = 0;
   this.fullness = MAX/2; // eat food to fill
-  this.maxHealth = SPECIES[opts.species].maxHealth || MAX;
-  this.maxEnergy = SPECIES[opts.species].maxEnergy || MAX;
+  this.maxHealth = species.maxHealth || MAX;
+  this.maxEnergy = species.maxEnergy || MAX;
   this.energy = this.maxEnergy/2; // sleep to fill back
   this.health = this.maxHealth/2;
-  this.speed = SPECIES[opts.species].speed // speed might increment later
+  this.speed = species.speed; // speed might increment later
+  // TODO: life expectancy
 
   this.asleep = false;
   this.hungry = false;
@@ -25,10 +27,10 @@ var Creature = function (opts, game) {
   this.lastPlace = null;
   this.status = '';
 
-  this.eating = new Timed(4 * HOUR, this.game.getTime);
+  this.eating = new Timed(2 * HOUR, this.game.getTime);
   this.playing = new Timed(4 * HOUR, this.game.getTime);
   this.mating = new Timed(4 * HOUR, this.game.getTime);
-  this.pregnancy = new Timed(1 * WEEK, this.game.getTime); // TODO: change per species
+  this.pregnancy = new Timed(SPECIES[opts.species].gestation, this.game.getTime);
   this.emigrating = new Timed(3 * WEEK, this.game.getTime);
 };
 
@@ -48,7 +50,7 @@ Creature.prototype = {
 
     var near = game.creaturesNearTo(this);
 
-    this.fullness -= MAX * TIME_STEP / DAY;
+    this.fullness -= MAX * TIME_STEP / (DAY * 3);
     if (this.fullness < 0) {
       this.fullness = 0;
     }
@@ -67,6 +69,7 @@ Creature.prototype = {
       }
     } else {
       this.health += MAX * TIME_STEP / (WEEK * 2);
+      this.maxHealth += MAX * TIME_STEP / (YEAR * 10);
     }
 
     if (near.length) {
@@ -77,13 +80,17 @@ Creature.prototype = {
     this.locatePlace();
     this.planMove();
 
-    if (this.health <= 0) {
-      this.die();
+    if (this.settled && !this.locatedWithinPlace()) {
+      this.leavePlace();
     }
 
     this.energy -= (MAX * TIME_STEP / DAY) * 1/3;
     if (this.energy <= MAX/10) {
       this.fallAsleep();
+    }
+
+    if (this.health <= 0) {
+      this.die();
     }
   },
   locatePlace: function () {
@@ -97,7 +104,6 @@ Creature.prototype = {
     if (!this.partner && this.settled && this.emigrating.check()) {
       // do not leave places if prenant (this.partner)
       this.leavePlace();
-      this.emigrating.set();
     }
   },
   moveTo: function (target) {
@@ -107,6 +113,10 @@ Creature.prototype = {
     this.y += Math.sin(angle) / UNIT * this.speed;
   },
   planMove: function () {
+    if (this.hungry && this.eatsMeat() && this.health < MAX/10) {
+      // hunger and low health will make carnivores leave to search for prey
+      this.leavePlace();
+    }
     if (this.settled) {
       // settled in a place, will find interesting creatures nearby instead
       var interest = this.game.nearestInterestingCreature(this);
@@ -117,7 +127,7 @@ Creature.prototype = {
     }
 
     if (this.place) {
-      if (distance(this, this.place) > this.place.radius) {
+      if (!this.locatedWithinPlace()) {
         this.moveTo(this.place);
       } else if (!this.settled) {
         this.settled = true;
@@ -126,19 +136,25 @@ Creature.prototype = {
       }
     }
   },
-  leavePlace: function () {
-    if (this.place) {
-      if (this.settled) {
-        if (this.health !== 0) {
-          this.emit('left', this.place);
-        }
-
-        this.lastPlace = this.place;
-        this.place.removeCreature(this);
-        this.settled = false;
-        this.place = null;
-      }
+  locatedWithinPlace: function () {
+    if (!this.place) {
+      return false;
     }
+    return distance(this, this.place) < this.place.radius;
+  },
+  leavePlace: function () {
+    if (!this.place || !this.settled) {
+      return;
+    }
+    if (this.health !== 0) {
+      this.emit('left', this.place);
+    }
+
+    this.emigrating.set();
+    this.lastPlace = this.place;
+    this.place.removeCreature(this);
+    this.settled = false;
+    this.place = null;
   },
   play: function (creatures) {
     if (!this.playing.check()) {
@@ -148,10 +164,20 @@ Creature.prototype = {
     if (c) {
       this.playing.set();
       c.playing.set();
-      this.happiness += c.happiness * 0.10;
+      this.happiness += c.happiness/100;
+      c.happiness += this.happiness/100;
       this.energy -= MAX/100;
       c.energy -= MAX/100;
+
       this.emit('played with', c);
+
+      if (randint(0,5) === 0) {
+        var winner = randint(0,1) ? this : c;
+        c.speed += MAX/100;
+        c.maxHealth += MAX/100;
+        c.maxEnergy += MAX/100;
+        c.emit('improved themselves after playing');
+      }
     }
   },
   mate: function (c) {
@@ -207,10 +233,10 @@ Creature.prototype = {
 
     var c = randv(c.filter(filters.differentSpecies(this)));
     if (c) {
-      if (c.eatsMeat() && c.energy > this.energy) {
+      if (!c.asleep && c.eatsMeat() && c.energy > this.energy) {
         // the other creature might eat this one if it's stronger!
         c.eat(this);
-      } else if (c.energy > this.energy && randint(0, 5) === 0) {
+      } else if (!c.asleep && c.energy > this.energy && randint(0, 5) === 0) {
         // others may put up a fight
         this.energy -= MAX/10;
         this.health -= MAX/10;

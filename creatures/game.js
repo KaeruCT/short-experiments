@@ -1,6 +1,7 @@
 var game = (function () {
 
     var exports = {};
+    var speed = 1; // adjustable speed
     var time = Math.round((new Date()).getTime() / 1000); // current UNIX timestamp
     var s = UNIT; // render pixel size
     var w = DIM;
@@ -14,6 +15,11 @@ var game = (function () {
     var focusedCreature = null;
     var generalInfo, logInfo, placeInfo, creatureInfo;
     var paused = true;
+
+    var stats = {
+      born: 0,
+      died: 0
+    };
 
     function norm(coord) {
       return Math.floor(coord/s);
@@ -35,7 +41,7 @@ var game = (function () {
 
     function creatureDesc(c) {
       var gender = c.gender === 'M' ? 'male' : 'female';
-      return c.name + ', ' + gender + ' ' + c.species;
+      return c.name + ' (' + gender + ' ' + c.species + ')';
     }
 
     exports.init = function (opts) {
@@ -49,6 +55,7 @@ var game = (function () {
       c.height = h*s;
       c.style.width = (w*s)+"px";
       c.style.height = (h*s)+"px";
+      c.style.background = COLORS.bg;
 
       c.onmousemove = function (e) {
         m = {x: norm(e.offsetX), y: norm(e.offsetY)};
@@ -66,28 +73,48 @@ var game = (function () {
           }
         }
 
-        ctx.fillStyle = '#030';
+        if (p.creatures.length) {
+          ctx.fillStyle = COLORS.placeFull;
+        } else {
+          ctx.fillStyle = COLORS.placeEmpty;
+        }
         ctx.beginPath();
         ctx.arc(p.x*s, p.y*s, p.radius*s, 0, 2*Math.PI, false);
+        ctx.fill();
+
+        // fullness
+        ctx.fillStyle = COLORS.placePlants;
+        ctx.beginPath();
+        ctx.arc(p.x*s, p.y*s, p.radius*s*p.plants/p.maxPlants, 0, 2*Math.PI, false);
         ctx.fill();
       });
 
       if (focusedPlace) {
         var p = focusedPlace;
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = COLORS.focus;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(p.x*s, p.y*s, p.radius*s, 0, 2*Math.PI, false);
         ctx.stroke();
 
         var str = '';
         str = title(p.name);
-        str += label('Food', p.plants.toFixed(2));
+        str += '<div class="info">';
+        str += label('Food', p.plants.toFixed(2) + '/' + p.maxPlants.toFixed(2));
+        str += '</div>';
         if (p.creatures.length) {
-          str += title('Inhabitants ');
+          str += title('Population');
           str += '<ul><li>' + p.creatures.map(creatureDesc).join('</li><li>') + '</li></ul>';
         }
         placeInfo.innerHTML = str;
       }
+
+      var crm = function (c) {
+        // creature radius multiplier
+        var val = s/2 * ((c.maxHealth)/MAX);
+        val = Math.max(0.5, Math.min(val, UNIT*0.75));
+        return val;
+      };
 
       creatures.forEach(function (c) {
         if (circleContains(c.x, c.y, NEARNESS, m.x, m.y)) {
@@ -98,26 +125,26 @@ var game = (function () {
         }
 
         if (c.gender === 'M') {
-          ctx.fillStyle = '#0aa';
+          ctx.fillStyle = COLORS.male;
         } else {
           if (c.partner) {
-            ctx.fillStyle = '#a33';
+            ctx.fillStyle = COLORS.pregnant;
           } else {
-            ctx.fillStyle = '#a0a';
+            ctx.fillStyle = COLORS.female;
           }
         }
 
-
         ctx.beginPath();
-        ctx.arc(c.x*s, c.y*s, s/2, 0, 2*Math.PI, false);
+        ctx.arc(c.x*s, c.y*s, crm(c), 0, 2*Math.PI, false);
         ctx.fill();
       });
 
       if (focusedCreature && !focusedCreature.dead) {
         var c = focusedCreature;
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = COLORS.focus;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(c.x*s, c.y*s, s/2+0.5, 0, 2*Math.PI, false);
+        ctx.arc(c.x*s, c.y*s, crm(c)+0.5, 0, 2*Math.PI, false);
         ctx.stroke();
 
         // TODO: bars
@@ -129,7 +156,7 @@ var game = (function () {
         str += label('Energy', c.energy.toFixed(2));
         str += label('Sleeping', c.asleep ? 'Yes' : 'No');
         str += label('Hungry', c.hungry ? 'Yes' : 'No');
-        str += label('Settled', c.settled ? 'At ' + c.place.name : 'No');
+        str += label('Settled', c.settled ? 'At ' + c.place.name : (c.place ? 'Heading to ' + c.place.name : 'No'));
         str += label('Pregnant', c.partner ? 'From ' + creatureDesc(c.partner) : 'No');
         if (c.partner) {
           str += label('Due in', formatDuration(c.pregnancy.timeLeft()));
@@ -141,6 +168,9 @@ var game = (function () {
       }
 
       var general = label('Date', moment(time * 1000).format(DATE_FORMAT));
+      general += label('Population', creatures.length);
+      general += label('Births', stats.born);
+      general += label('Deaths', stats.died);
       generalInfo.innerHTML = general;
     };
 
@@ -164,15 +194,15 @@ var game = (function () {
 
     exports.nearestPlaceTo = function (c) {
       var all = places.slice();
-      var found = all;
+      var found = all.slice();
 
       if (c.gender === 'M') {
         found = found.filter(function (p) {
           return p.creatures.filter(function (c) {
-            return c.gender === 'F'
+            return c.gender === 'F';
           }).length > 0;
         });
-        if (!found.length) {
+        if (!found.length || (c.lastPlace && found.length === 1 && found[0] === c.lastPlace)) {
           found = all;
         }
       }
@@ -180,9 +210,9 @@ var game = (function () {
       if (c.lastPlace) {
         remove(found, c.lastPlace);
       }
-
       return found.sort(function (p1, p2) {
-        return distance(c, p1) - distance(c, p2);
+        // prefer places with other creatures, then closest
+        return (p1.creatures.length - p2.creatures.length) + (distance(c, p1) > distance(c, p2) ? 1 : -1);
       })[0];
     };
 
@@ -190,30 +220,38 @@ var game = (function () {
       if (paused) {
         return;
       }
-      creatures.forEach(function (c) {
-        c.tick();
-      });
-      places.forEach(function (p) {
-        p.tick();
-      });
-      time += TIME_STEP;
+      for (var i = 0; i < speed; i++) {
+        creatures.forEach(function (c) {
+          if (!c.dead) {
+            c.tick();
+          }
+        });
+        places.forEach(function (p) {
+          p.tick();
+        });
+        time += TIME_STEP;
+      }
     };
 
     exports.emit = function (creature, obj, description) {
       if (obj instanceof Creature) {
-        description += ' ' + obj.name + ' (' + obj.species + ')';
+        description += ' ' + creatureDesc(obj);
       } else if (obj instanceof Place) {
         description += ' ' + obj.name;
       }
 
-      creature.status = creature.name + ' (' + creature.species + ') ' + description;
+      creature.status = creatureDesc(creature) + ' ' + description;
 
       var entry = document.createElement('div');
       entry.innerText = moment(time * 1000).format(SHORT_DATE_FORMAT) + ': ' + creature.status;
       logInfo.appendChild(entry);
       logInfo.scrollTop = logInfo.scrollHeight;
 
+      if (description === 'was born') {
+        stats.born += 1;
+      }
       if (description === 'died') {
+        stats.died += 1;
         remove(creatures, creature);
       }
     };
@@ -225,11 +263,23 @@ var game = (function () {
     };
 
     exports.addPlace = function (opts) {
+      var overlapping = places.some(function (p) {
+        return  Math.hypot(opts.x-p.x, opts.y-p.y) <= (opts.radius + p.radius);
+      });
+      if (overlapping) {
+        return false;
+      }
       places.push(new Place(opts, exports));
+      return true;
     };
 
     exports.getTime = function () {
       return time;
+    };
+
+    exports.setSpeed = function (val) {
+      speed = val || 1;
+      return speed;
     };
 
     exports.togglePause = function () {

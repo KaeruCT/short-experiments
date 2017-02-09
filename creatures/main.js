@@ -7,7 +7,6 @@ window.onload = function () {
       logInfo: document.getElementById('log')
     });
 
-
     var pauseBtn = document.getElementById('pause');
     pauseBtn.onclick = function (e) {
       e && e.preventDefault();
@@ -15,7 +14,19 @@ window.onload = function () {
     };
     pauseBtn.onclick();
 
-    for (var i = 0; i < 50; i++) {
+    var speedSlide = document.getElementById('speed-slider');
+    var speedVal = document.getElementById('speed-value');
+    speedSlide.min = 1;
+    speedSlide.max = 10;
+    speedSlide.step = 1;
+    speedSlide.onchange = function () {
+      var speed = game.setSpeed(speedSlide.value);
+      speedSlide.value = speed;
+      speedVal.innerText = speed;
+    };
+    speedSlide.onchange();
+
+    for (var i = 0; i < 100; i++) {
       var gender = randv(GENDERS);
       game.addCreature({
         name: randv(NAMES[gender]),
@@ -26,13 +37,18 @@ window.onload = function () {
       });
     }
 
-    for (var i = 0; i < 3; i++) {
-      game.addPlace({
-        name: randv(PLACES),
-        x: randint(0, DIM),
-        y: randint(0, DIM),
+    for (var i = 0; i < 20;) {
+      var name = randv(PLACES);
+      var added = game.addPlace({
+        name: name,
+        x: randint(MAX_PLACE_RAD, DIM-MAX_PLACE_RAD),
+        y: randint(MAX_PLACE_RAD, DIM-MAX_PLACE_RAD),
         radius: randint(MIN_PLACE_RAD, MAX_PLACE_RAD)
       });
+      if (added) {
+        remove(PLACES, name);
+        i += 1;
+      }
     }
 
     function tick() {

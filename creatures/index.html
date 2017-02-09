@@ -13,20 +13,33 @@
 </head>
 <body>
   <div class="container">
-    <div class="l">
-      <div id="p-info"></div>
+    <div class="l v">
+      <div class="h" id="controls">
+        <div>
+          Speed:
+          <input type="range" id="speed-slider" value="1"/>
+          &nbsp;<span id="speed-value"></span>
+        </div>
+        <div><a href="#" id="pause"></a></div>
+
+        <div id="info"></div>
+      </div>
+      <div class="h-full">
+        <div id="p-info"></div>
+      </div>
     </div>
     <div class="c">
       <canvas id="stage"></canvas>
     </div>
-    <div class="r">
-      <div id="c-info"></div>
+    <div class="r v">
+      <div class="h-full">
+        <div id="c-info"></div>
+      </div>
     </div>
   </div>
   <div class="footer container">
     <div class="l">
-      <div id="info"></div>
-      <a href="#" id="pause"></a>
+      ...
     </div>
     <div class="r" id="log"></div>
   </div>

@@ -1,7 +1,7 @@
 function Timed(waitTime, getTime) {
-  this.lastOccurrence = 0;
   this.getTime = getTime;
   this.waitTime = waitTime;
+  this.lastOccurrence = this.getTime();
 }
 Timed.prototype.check = function () {
   return this.getTime() - this.waitTime > this.lastOccurrence;
