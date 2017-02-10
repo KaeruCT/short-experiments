@@ -198,7 +198,7 @@ var game = (function () {
         general += label('Deaths', stats.died);
         generalInfo.innerHTML = general;
 
-        if (logInfo.children.length > 300 && queuedLogs.length) {
+        if (logInfo.children.length >= 100 && queuedLogs.length) {
           // TODO: make configurable?
           logInfo.innerHTML = '';
         }
