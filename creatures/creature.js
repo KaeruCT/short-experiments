@@ -13,15 +13,17 @@ var Creature = function (opts, game) {
   this.fullness = MAX/2; // eat food to fill
   this.maxHealth = species.maxHealth || MAX;
   this.maxEnergy = species.maxEnergy || MAX;
+  this.maxAge = species.maxAge + species.maxAge*Math.random()*1.5;
   this.energy = this.maxEnergy/2; // sleep to fill back
   this.health = this.maxHealth/2;
   this.speed = species.speed; // speed might increment later
-  // TODO: life expectancy
+  // TODO: better life expectancy
 
   this.asleep = false;
   this.hungry = false;
   this.settled = false;
   this.dead = false;
+  this.tooOld = false;
 
   this.partner = null;
   this.place = null;
@@ -95,7 +97,8 @@ Creature.prototype = {
       this.happiness = 0;
     }
 
-    if (this.health <= 0) {
+    this.tooOld = game.getTime() - this.born > this.maxAge;
+    if (this.health <= 0 || this.tooOld) {
       this.die();
     }
   },
@@ -232,7 +235,7 @@ Creature.prototype = {
       var babies = 1;
       if (randint(0, 2) === 0) {
         // randomly have more than one baby!
-        babies = randint(2, 4);
+        babies = randint(2, 6);
       }
       for (var i = 0; i < babies; i++) {
         var gender = randv(GENDERS);
@@ -257,10 +260,10 @@ Creature.prototype = {
 
     var c = randv(c.filter(filters.differentSpecies(this)));
     if (c) {
-      if (!c.asleep && c.eatsMeat() && (c.energy > this.energy || c.mate)) {
-        // the other creature might eat this one if it's stronger! (or is pregnant (mate))
+      if (!c.asleep && c.eatsMeat() && (c.energy > this.energy || c.partner)) {
+        // the other creature might eat this one if it's stronger! (or is pregnant (partner))
         c.eat(this);
-      } else if (!c.asleep && (c.energy > this.energy && randint(0, 3) === 0) || (c.mate && randint(0, 5) === 0)) {
+      } else if (!c.asleep && (c.energy > this.energy && randint(0, 3) === 0) || (c.partner && randint(0, 2) === 0)) {
         // others may put up a fight
         this.energy -= MAX/10;
         this.health -= MAX/10;
@@ -340,7 +343,11 @@ Creature.prototype = {
     if (!this.dead) {
       this.health = 0;
       this.leavePlace();
-      this.emit('died');
+      if (this.tooOld) {
+        this.emit('died of old age');
+      } else {
+        this.emit('died');
+      }
       this.dead = true;
     }
   },

@@ -65,7 +65,8 @@ var SPECIES = {
     maxEnergy: MAX*1.7,
     maxHealth: MAX*2,
     speed: 2,
-    gestation: 2 * WEEK
+    gestation: 2 * WEEK,
+    maxAge: 6 * MONTH
   },
   Gorilla: {
     plants: true,
@@ -73,7 +74,8 @@ var SPECIES = {
     maxEnergy: MAX*2,
     maxHealth: MAX*2,
     speed: 2,
-    gestation: 3 * WEEK
+    gestation: 3 * WEEK,
+    maxAge: 6 * MONTH
   },
   Lizard: {
     plants: true,
@@ -81,7 +83,8 @@ var SPECIES = {
     maxEnergy: MAX*1.5,
     maxHealth: MAX*0.5,
     speed: 4,
-    gestation: 3 * WEEK
+    gestation: 3 * WEEK,
+    maxAge: 3 * MONTH
   },
   Turtle: {
     plants: true,
@@ -89,6 +92,7 @@ var SPECIES = {
     maxEnergy: MAX*1.7,
     maxHealth: MAX*1.6,
     gestation: 1 * WEEK,
+    maxAge: 5 * MONTH,
     speed: 0.7
   },
   Mouse: {
@@ -96,6 +100,7 @@ var SPECIES = {
     maxEnergy: MAX*3,
     maxHealth: MAX*4,
     gestation: 0.5 * DAY,
+    maxAge: 4 * MONTH,
     speed: 6,
   },
   Rabbit: {
@@ -103,6 +108,7 @@ var SPECIES = {
     maxEnergy: MAX*5,
     maxHealth: MAX*2,
     gestation: 1 * DAY,
+    maxAge: 6 * MONTH,
     speed: 8
   },
   Boar: {
@@ -111,7 +117,8 @@ var SPECIES = {
     maxEnergy: MAX*1.3,
     maxHealth: MAX*4,
     speed: 2,
-    gestation: 1.5 * WEEK
+    gestation: 1.5 * WEEK,
+    maxAge: 9 * MONTH
   },
   Sloth: {
     plants: true,
@@ -119,21 +126,24 @@ var SPECIES = {
     maxEnergy: MAX*0.9,
     maxHealth: MAX,
     speed: 0.4,
-    gestation: 2 * WEEK
+    gestation: 2 * WEEK,
+    maxAge: 8 * MONTH
   },
   Dragon: {
     meat: true,
     maxEnergy: MAX*2,
     maxHealth: MAX*3,
     speed: 2.5,
-    gestation: 1.2 * WEEK
+    gestation: 1.2 * WEEK,
+    maxAge: 4 * YEAR
   },
   Elephant: {
     plants: true,
     maxEnergy: MAX*4,
     maxHealth: MAX*6,
     speed: 2,
-    gestation: 4 * WEEK
+    gestation: 4 * WEEK,
+    maxAge: 3 * YEAR
   },
   Koala: {
     plants: true,
@@ -141,54 +151,62 @@ var SPECIES = {
     maxHealth: MAX*0.7,
     speed: 1,
     gestation: 0.3 * WEEK,
+    maxAge: 6 * MONTH
   },
   Unicorn: {
     plants: true,
     maxEnergy: MAX*4,
     maxHealth: MAX*3,
     speed: 4,
-    gestation: 2 * WEEK
+    gestation: 2 * WEEK,
+    maxAge: 3 * YEAR
   },
   Zebra: {
     plants: true,
     maxEnergy: MAX*3,
     maxHealth: MAX*2,
     speed: 3,
-    gestation: 3 * WEEK
+    gestation: 3 * WEEK,
+    maxAge: 10 * MONTH
   },
   Fox: {
     meat: true,
     plants: true,
     maxHealth: MAX*1.5,
     speed: 3,
-    gestation: 0.3 * WEEK
+    gestation: 0.3 * WEEK,
+    maxAge: 3 * MONTH
   },
   Wolf: {
     meat: true,
     maxHealth: MAX*2,
     speed: 4,
-    gestation: 0.5 * WEEK
+    gestation: 0.5 * WEEK,
+    maxAge: 7 * MONTH
   },
   Lion: {
     meat: true,
     maxEnergy: MAX*0.7,
     maxHealth: MAX*3,
     speed: 3,
-    gestation: 3 * WEEK
+    gestation: 3 * WEEK,
+    maxAge: 11 * MONTH
   },
   Tiger: {
     meat: true,
     maxEnergy: MAX*0.8,
     maxHealth: MAX*4,
     speed: 4,
-    gestation: 2.7 * WEEK
+    gestation: 2.7 * WEEK,
+    maxAge: 2 * YEAR
   },
   Snake: {
     meat: true,
     maxEnergy: MAX*0.5,
     maxHealth: MAX*2.5,
     speed: 4,
-    gestation: 1.2 * WEEK
+    gestation: 1.2 * WEEK,
+    maxAge: 7 * MONTH
   }
 };
 

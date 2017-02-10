@@ -298,10 +298,10 @@ var game = (function () {
       creature.status = creatureDesc(creature) + ' ' + description;
       queuedLogs.push(moment(time * 1000).format(SHORT_DATE_FORMAT) + ': ' + creature.status);
 
-      if (description === 'was born') {
+      if (description.startsWith('was born')) {
         stats.born += 1;
       }
-      if (description === 'died') {
+      if (description.startsWith('died')) {
         stats.died += 1;
         remove(creatures, creature);
       }
