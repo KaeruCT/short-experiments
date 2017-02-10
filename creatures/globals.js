@@ -4,6 +4,7 @@ var UNIT = 8;
 var NEARNESS = 2;
 var MIN_PLACE_RAD = 3;
 var MAX_PLACE_RAD = 8;
+var MAX_NAME_LENGTH = 16;
 
 var DATE_FORMAT = 'MMMM Do YYYY, h:mm a';
 var SHORT_DATE_FORMAT = 'DD/MM/YYYY h:mm a';
@@ -53,8 +54,8 @@ var PLACES = [
   'Kalgan'
 ];
 var NAMES = {
-  M: ['Jose', 'Joe', 'Jack', 'Roberto', 'Alejandro', 'Diego', 'Justin', 'Manuel', 'Victor', 'Gabriel', 'Fabian', 'Stan', 'Marcus'],
-  F: ['Catalina', 'Adriana', 'Ana', 'Laura', 'Gabriela', 'Nicole', 'Melissa', 'Katherine', 'Karen', 'Karina', 'Claudia', 'Sofia', 'Julia']
+  M: ['Herbie', 'Zack', 'Samuel', 'Viktor', 'MC Ride', 'Lemmy', 'Freddie', 'Travis', 'Ernesto', 'Julio', 'Pablo', 'Rafael', 'Gerardo', 'James', 'Michael', 'Jose', 'Joe', 'Ken', 'Jack', 'Rafael', 'Kanye', 'Luis', 'Roberto', 'Chance', 'Carlos', 'Alejandro', 'Frank', 'Diego', 'Justin', 'Manuel', 'Victor', 'Gabriel', 'Fabian', 'Donald', 'Mohammed', 'Stan', 'Jeff', 'Oscar', 'David', 'Devin', 'William', 'Marcus'],
+  F: ['Ericka', 'Rosa', 'Catalina', 'Jade', 'Jenny', 'Jaime', 'Janice', 'Lauryn', 'Maria', 'Adriana', 'Ana', 'Laura', 'Gabriela', 'Nicole', 'Melissa', 'Katherine', 'Karen', 'Karina', 'Claudia', 'Sofia', 'Julia', 'Andrea', 'Lisa', 'Hillary', 'Daniela', 'Alexa', 'Wanda', 'Isabelle', 'Michelle', 'Cassandra', 'Samantha', 'Francisca', 'Yuki', 'Natalia', 'Taylor', 'Paula', 'Haruhi', 'Miku', 'Bianca', 'Yoko', 'Rita', 'Remy']
 };
 
 var SPECIES = {
@@ -64,7 +65,7 @@ var SPECIES = {
     maxEnergy: MAX*1.7,
     maxHealth: MAX*2,
     speed: 2,
-    gestation: 6 * WEEK
+    gestation: 2 * WEEK
   },
   Gorilla: {
     plants: true,
@@ -72,7 +73,7 @@ var SPECIES = {
     maxEnergy: MAX*2,
     maxHealth: MAX*2,
     speed: 2,
-    gestation: 8 * WEEK
+    gestation: 3 * WEEK
   },
   Lizard: {
     plants: true,
@@ -85,31 +86,24 @@ var SPECIES = {
   Turtle: {
     plants: true,
     meat: true,
-    maxEnergy: MAX*3,
-    maxHealth: MAX*3,
+    maxEnergy: MAX*1.7,
+    maxHealth: MAX*1.6,
     gestation: 1 * WEEK,
     speed: 0.7
   },
   Mouse: {
     plants: true,
     maxEnergy: MAX*3,
-    maxHealth: MAX*0.5,
-    gestation: 1 * DAY,
-    speed: 4
+    maxHealth: MAX*4,
+    gestation: 0.5 * DAY,
+    speed: 6,
   },
   Rabbit: {
     plants: true,
     maxEnergy: MAX*5,
     maxHealth: MAX*2,
-    gestation: 2 * DAY,
-    speed: 6
-  },
-  Mouse: {
-    plants: true,
-    maxEnergy: MAX*3,
-    maxHealth: MAX*0.5,
     gestation: 1 * DAY,
-    speed: 4
+    speed: 8
   },
   Boar: {
     plants: true,
@@ -117,7 +111,7 @@ var SPECIES = {
     maxEnergy: MAX*1.3,
     maxHealth: MAX*4,
     speed: 2,
-    gestation: 4 * WEEK
+    gestation: 1.5 * WEEK
   },
   Sloth: {
     plants: true,
@@ -125,76 +119,76 @@ var SPECIES = {
     maxEnergy: MAX*0.9,
     maxHealth: MAX,
     speed: 0.4,
-    gestation: 6 * WEEK
+    gestation: 2 * WEEK
   },
   Dragon: {
     meat: true,
     maxEnergy: MAX*2,
     maxHealth: MAX*3,
     speed: 2.5,
-    gestation: 5 * WEEK
+    gestation: 1.2 * WEEK
   },
   Elephant: {
     plants: true,
     maxEnergy: MAX*4,
     maxHealth: MAX*6,
     speed: 2,
-    gestation: 22 * WEEK
+    gestation: 4 * WEEK
   },
   Koala: {
     plants: true,
     maxEnergy: MAX*2,
     maxHealth: MAX*0.7,
     speed: 1,
-    gestation: 1 * WEEK,
+    gestation: 0.3 * WEEK,
   },
   Unicorn: {
     plants: true,
     maxEnergy: MAX*4,
     maxHealth: MAX*3,
     speed: 4,
-    gestation: 9 * WEEK
+    gestation: 2 * WEEK
   },
   Zebra: {
     plants: true,
     maxEnergy: MAX*3,
     maxHealth: MAX*2,
     speed: 3,
-    gestation: 10 * WEEK
+    gestation: 3 * WEEK
   },
   Fox: {
     meat: true,
     plants: true,
     maxHealth: MAX*1.5,
     speed: 3,
-    gestation: 1 * WEEK
+    gestation: 0.3 * WEEK
   },
   Wolf: {
     meat: true,
     maxHealth: MAX*2,
     speed: 4,
-    gestation: 2 * WEEK
+    gestation: 0.5 * WEEK
   },
   Lion: {
     meat: true,
     maxEnergy: MAX*0.7,
     maxHealth: MAX*3,
     speed: 3,
-    gestation: 4 * WEEK
+    gestation: 3 * WEEK
   },
   Tiger: {
     meat: true,
     maxEnergy: MAX*0.8,
     maxHealth: MAX*4,
     speed: 4,
-    gestation: 3.5 * WEEK
+    gestation: 2.7 * WEEK
   },
   Snake: {
     meat: true,
     maxEnergy: MAX*0.5,
     maxHealth: MAX*2.5,
     speed: 4,
-    gestation: 2 * WEEK
+    gestation: 1.2 * WEEK
   }
 };
 

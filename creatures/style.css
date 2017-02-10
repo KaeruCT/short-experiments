@@ -2,6 +2,9 @@
   margin: 0;
   padding: 0;
 }
+html, body, .wrapper {
+  height: 100%;
+}
 body {
   background: #222;
   color: #aaa;
@@ -36,7 +39,8 @@ li {
   width: 100%;
 }
 .footer {
-  border-top: #333 1px solid;
+  flex: 2;
+  display: flex;
 }
 #stage {
   border: #333 1px solid;
@@ -48,7 +52,7 @@ li {
   padding: .5em;
 }
 #speed-slider {
-  width: 100px;
+  width: 74%;
 }
 #info {
   border-top: #444 1px solid;
@@ -59,13 +63,22 @@ li {
   margin-bottom: .5em;
 }
 #log {
-  background: #111;
-  border: #444 1px solid;
-  max-height: 6em;
-  margin-top: 2px;
+  margin: 0 .5em;
+  background: #060606;
+  color: #999;
+  border: #333 1px solid;
   overflow: scroll;
   font-size: 12px;
   font-family: monospace;
+  height: 95%;
+  width: 100%;
+}
+.tnode {
+  margin-left: 8px;
+  border-left: #333 1px dashed;
+  padding-left: 8px;
+  font-family: monospace;
+  font-size: 12px;
 }
 a:link, a:visited {
   color: #7cc;

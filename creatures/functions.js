@@ -30,6 +30,22 @@ function remove(arr, el) {
   arr.splice(arr.indexOf(el), 1);
 }
 
+function fuseNames(name1, name2) {
+  function isVocal(char) {
+    return 'AEIOUaeiou'.indexOf(char) !== -1;
+  }
+  var name = '';
+  for (var i = 0; i < name1.length; i++) {
+    name += name1[i];
+    if (i >= Math.floor(name1.length/2)-1 && !isVocal(name1[i]) || name.length > MAX_NAME_LENGTH/2) break;
+  }
+  for (var i = Math.floor(name2.length/2); i < name2.length; i++) {
+    name += name2[i];
+    if (i >= name2.length && !isVocal(name2[i]) || name.length > MAX_NAME_LENGTH/2) break;
+  }
+  return name;
+}
+
 var filters = {
   sameSpecies: function (c1) {
     return function (c2) {

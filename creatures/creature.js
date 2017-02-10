@@ -7,6 +7,7 @@ var Creature = function (opts, game) {
   this.gender = opts.gender;
   this.x = opts.x || 0;
   this.y = opts.y || 0;
+  this.ancestors = opts.ancestors || [];
 
   this.happiness = 0;
   this.fullness = MAX/2; // eat food to fill
@@ -24,14 +25,14 @@ var Creature = function (opts, game) {
 
   this.partner = null;
   this.place = null;
-  this.lastPlace = null;
+  this.lastPlaces = [];
   this.status = '';
 
   this.eating = new Timed(2 * HOUR, this.game.getTime);
   this.playing = new Timed(4 * HOUR, this.game.getTime);
-  this.mating = new Timed(4 * HOUR, this.game.getTime);
-  this.pregnancy = new Timed(SPECIES[opts.species].gestation, this.game.getTime);
-  this.emigrating = new Timed(3 * WEEK, this.game.getTime);
+  this.mating = new Timed(randint(1,3) * HOUR, this.game.getTime);
+  this.pregnancy = new Timed(SPECIES[opts.species].gestation / randint(1,2), this.game.getTime);
+  this.emigrating = new Timed(randint(2,3) * WEEK, this.game.getTime);
 };
 
 Creature.prototype = {
@@ -60,6 +61,7 @@ Creature.prototype = {
       }
       if (this.hungry) {
         this.health -= MAX * TIME_STEP / WEEK;
+        this.happiness -= MAX/200;
       }
       if (this.eatsMeat() && near.length) {
         this.tryToEat(near);
@@ -89,6 +91,10 @@ Creature.prototype = {
       this.fallAsleep();
     }
 
+    if (this.happiness < 0) {
+      this.happiness = 0;
+    }
+
     if (this.health <= 0) {
       this.die();
     }
@@ -105,6 +111,11 @@ Creature.prototype = {
       // do not leave places if prenant (this.partner)
       this.leavePlace();
     }
+
+    if (this.hungry && !this.settled) {
+      // if not settled and hungry, search again!
+      this.place = null;
+    }
   },
   moveTo: function (target) {
     var angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -113,8 +124,8 @@ Creature.prototype = {
     this.y += Math.sin(angle) / UNIT * this.speed;
   },
   planMove: function () {
-    if (this.hungry && this.eatsMeat() && this.health < MAX/10) {
-      // hunger and low health will make carnivores leave to search for prey
+    if (this.hungry && this.health < MAX/10) {
+      // hunger and low health will make creatures leave for food
       this.leavePlace();
     }
     if (this.settled) {
@@ -151,7 +162,11 @@ Creature.prototype = {
     }
 
     this.emigrating.set();
-    this.lastPlace = this.place;
+    this.lastPlaces.push(this.place);
+    if (this.lastPlaces.length >= 6) {
+      // TODO: maybe make this variable?
+      this.lastPlaces.shift();
+    }
     this.place.removeCreature(this);
     this.settled = false;
     this.place = null;
@@ -203,7 +218,7 @@ Creature.prototype = {
     if (this.partner) {
       return;
     }
-    if (randint(0, 2) === 0) {
+    if (randint(0, 1) === 0) {
       this.emit('became pregnant from ', dad);
       this.partner = dad;
       this.pregnancy.set();
@@ -214,15 +229,24 @@ Creature.prototype = {
       return;
     }
     if (this.pregnancy.check()) {
-      var baby = this.game.addCreature({
-        species: this.species,
-        gender: randv(GENDERS),
-        x: this.x,
-        y: this.y,
-        name: this.partner.name + ' Jr.' // TODO: lmao
-      });
-      this.emit('gave birth to', baby);
-      this.energy -= MAX/2;
+      var babies = 1;
+      if (randint(0, 2) === 0) {
+        // randomly have more than one baby!
+        babies = randint(2, 4);
+      }
+      for (var i = 0; i < babies; i++) {
+        var gender = randv(GENDERS);
+        var baby = this.game.addCreature({
+          species: this.species,
+          gender: gender,
+          x: this.x,
+          y: this.y,
+          name: gender === 'F' ? fuseNames(this.name, this.partner.name) : fuseNames(this.partner.name, this.name),
+          ancestors: [this, this.partner]
+        });
+        this.emit('gave birth to', baby);
+      }
+      this.energy -= MAX/7;
       this.partner = null;
     }
   },
@@ -233,22 +257,25 @@ Creature.prototype = {
 
     var c = randv(c.filter(filters.differentSpecies(this)));
     if (c) {
-      if (!c.asleep && c.eatsMeat() && c.energy > this.energy) {
-        // the other creature might eat this one if it's stronger!
+      if (!c.asleep && c.eatsMeat() && (c.energy > this.energy || c.mate)) {
+        // the other creature might eat this one if it's stronger! (or is pregnant (mate))
         c.eat(this);
-      } else if (!c.asleep && c.energy > this.energy && randint(0, 5) === 0) {
+      } else if (!c.asleep && (c.energy > this.energy && randint(0, 3) === 0) || (c.mate && randint(0, 5) === 0)) {
         // others may put up a fight
         this.energy -= MAX/10;
         this.health -= MAX/10;
+        this.speed -= MAX/100;
+        this.happiness -= 10;
+        this.leavePlace();
 
         c.emit('almost got eaten by ', this);
+        c.speed += MAX/100;
         c.happiness += 10;
-        c.health -= MAX/100;
-        c.energy -= MAX/100;
+        c.health -= MAX/10;
+        c.energy -= MAX/10;
       } else {
         this.eat(c);
       }
-
     }
   },
   eat: function (c) {

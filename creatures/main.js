@@ -17,7 +17,7 @@ window.onload = function () {
     var speedSlide = document.getElementById('speed-slider');
     var speedVal = document.getElementById('speed-value');
     speedSlide.min = 1;
-    speedSlide.max = 10;
+    speedSlide.max = 100;
     speedSlide.step = 1;
     speedSlide.onchange = function () {
       var speed = game.setSpeed(speedSlide.value);
@@ -56,7 +56,7 @@ window.onload = function () {
       setTimeout(tick, TICK_TIME * 1000);
     }
 
-    var render = function () {
+    function render () {
         game.render();
         window.requestAnimationFrame(render);
     };

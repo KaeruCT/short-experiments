@@ -8,6 +8,8 @@ var game = (function () {
     var h = DIM;
     var m = {x: 0, y: 0}; // normalized mouse coords
     var ctx; // canvas ctx
+    var queuedLogs = [];
+    var renderTime;
 
     var places = [];
     var creatures = [];
@@ -44,6 +46,15 @@ var game = (function () {
       return c.name + ' (' + gender + ' ' + c.species + ')';
     }
 
+    function familyTree(ancestors) {
+      if (!ancestors.length) {
+        return '';
+      }
+      var str = '<div class="tnode">- Mother: ' + ancestors[0].name + familyTree(ancestors[0].ancestors) + '</div>';
+      str += '<div class="tnode">- Father: ' + ancestors[1].name + familyTree(ancestors[1].ancestors) + '</div>';
+      return str;
+    };
+
     exports.init = function (opts) {
       var c = opts.canvas;
       generalInfo = opts.generalInfo;
@@ -63,6 +74,10 @@ var game = (function () {
     };
 
     exports.render = function () {
+      var now = new Date().getTime();
+      refreshHTML = speed < 4 || now - renderTime < speed;
+      renderTime = now;
+
       ctx.clearRect(0, 0, w*s, h*s);
 
       places.forEach(function (p) {
@@ -97,16 +112,18 @@ var game = (function () {
         ctx.arc(p.x*s, p.y*s, p.radius*s, 0, 2*Math.PI, false);
         ctx.stroke();
 
-        var str = '';
-        str = title(p.name);
-        str += '<div class="info">';
-        str += label('Food', p.plants.toFixed(2) + '/' + p.maxPlants.toFixed(2));
-        str += '</div>';
-        if (p.creatures.length) {
-          str += title('Population');
-          str += '<ul><li>' + p.creatures.map(creatureDesc).join('</li><li>') + '</li></ul>';
+        if (refreshHTML) {
+          var str = '';
+          str = title(p.name);
+          str += '<div class="info">';
+          str += label('Food', p.plants.toFixed(2) + '/' + p.maxPlants.toFixed(2));
+          str += '</div>';
+          if (p.creatures.length) {
+            str += title('Population');
+            str += '<ul><li>' + p.creatures.map(creatureDesc).join('</li><li>') + '</li></ul>';
+          }
+          placeInfo.innerHTML = str;
         }
-        placeInfo.innerHTML = str;
       }
 
       var crm = function (c) {
@@ -148,30 +165,51 @@ var game = (function () {
         ctx.stroke();
 
         // TODO: bars
-        var str = title(creatureDesc(c));
-        str += label('Age', formatDuration(time-c.born));
-        str += label('Happiness', c.happiness.toFixed(2));
-        str += label('Health', c.health.toFixed(2));
-        str += label('Fullness', c.fullness.toFixed(2));
-        str += label('Energy', c.energy.toFixed(2));
-        str += label('Sleeping', c.asleep ? 'Yes' : 'No');
-        str += label('Hungry', c.hungry ? 'Yes' : 'No');
-        str += label('Settled', c.settled ? 'At ' + c.place.name : (c.place ? 'Heading to ' + c.place.name : 'No'));
-        str += label('Pregnant', c.partner ? 'From ' + creatureDesc(c.partner) : 'No');
-        if (c.partner) {
-          str += label('Due in', formatDuration(c.pregnancy.timeLeft()));
+        if (refreshHTML) {
+          var str = title(creatureDesc(c));
+          str += label('Age', formatDuration(time-c.born));
+          str += label('Happiness', c.happiness.toFixed(2));
+          str += label('Health', c.health.toFixed(2));
+          str += label('Fullness', c.fullness.toFixed(2));
+          str += label('Speed', c.speed.toFixed(2));
+          str += label('Energy', c.energy.toFixed(2));
+          str += label('Sleeping', c.asleep ? 'Yes' : 'No');
+          str += label('Hungry', c.hungry ? 'Yes' : 'No');
+          str += label('Settled', c.settled ? 'At ' + c.place.name : (c.place ? 'Heading to ' + c.place.name : 'No'));
+          str += label('Pregnant', c.partner ? 'From ' + creatureDesc(c.partner) : 'No');
+          if (c.partner) {
+            str += label('Due in', formatDuration(c.pregnancy.timeLeft()));
+          }
+          str += '<div class="status">' + c.status + '</div>';
+          var tree = familyTree(c.ancestors);
+          if (tree) {
+            str += '<div class="status">' + tree + '</div>';
+          }
+          creatureInfo.innerHTML = str;
         }
-        str += '<div class="status">' + c.status + '</div>';
-        creatureInfo.innerHTML = str;
       } else {
         creatureInfo.innerHTML = '';
       }
 
-      var general = label('Date', moment(time * 1000).format(DATE_FORMAT));
-      general += label('Population', creatures.length);
-      general += label('Births', stats.born);
-      general += label('Deaths', stats.died);
-      generalInfo.innerHTML = general;
+      if (refreshHTML) {
+        var general = label('Date', moment(time * 1000).format(DATE_FORMAT));
+        general += label('Population', creatures.length);
+        general += label('Births', stats.born);
+        general += label('Deaths', stats.died);
+        generalInfo.innerHTML = general;
+
+        if (logInfo.children.length > 300 && queuedLogs.length) {
+          // TODO: make configurable?
+          logInfo.innerHTML = '';
+        }
+        var logEntry;
+        while (logEntry = queuedLogs.shift()) {
+          var entry = document.createElement('div');
+          entry.innerText = logEntry;
+          logInfo.appendChild(entry);
+          logInfo.scrollTop = logInfo.scrollHeight;
+        }
+      }
     };
 
     exports.creaturesNearTo = function (c1) {
@@ -202,24 +240,41 @@ var game = (function () {
             return c.gender === 'F';
           }).length > 0;
         });
-        if (!found.length || (c.lastPlace && found.length === 1 && found[0] === c.lastPlace)) {
+        c.lastPlaces.forEach(function (p) {
+          remove(found, p);
+        });
+        if (!found.length) {
           found = all;
         }
       }
 
-      if (c.lastPlace) {
-        remove(found, c.lastPlace);
-      }
-      return found.sort(function (p1, p2) {
-        // prefer places with other creatures, then closest
-        return (p1.creatures.length - p2.creatures.length) + (distance(c, p1) > distance(c, p2) ? 1 : -1);
-      })[0];
+      c.lastPlaces.forEach(function (p) {
+        remove(found, p);
+      });
+      found = found.sort(function (p1, p2) {
+        // prefer places with food, then other creatures, then closest
+        var val = 0;
+        if (c.hungry) {
+          if (!c.eatsMeat()) {
+            val += (p1.plants - p2.plants)/MAX;
+          } else {
+            val += 10*(p1.creatures.filter(filters.differentSpecies(c)).length - p2.creatures.filter(filters.differentSpecies(c)).length);
+          }
+        } else {
+          // prefer places with other creatures if not hungry
+          val += p1.creatures.length - p2.creatures.length;
+        }
+        val += distance(c, p1) - distance(c, p2);
+        return Math.floor(val*100);
+      });
+      return found[0];
     };
 
     exports.tick = function () {
       if (paused) {
         return;
       }
+
       for (var i = 0; i < speed; i++) {
         creatures.forEach(function (c) {
           if (!c.dead) {
@@ -241,11 +296,7 @@ var game = (function () {
       }
 
       creature.status = creatureDesc(creature) + ' ' + description;
-
-      var entry = document.createElement('div');
-      entry.innerText = moment(time * 1000).format(SHORT_DATE_FORMAT) + ': ' + creature.status;
-      logInfo.appendChild(entry);
-      logInfo.scrollTop = logInfo.scrollHeight;
+      queuedLogs.push(moment(time * 1000).format(SHORT_DATE_FORMAT) + ': ' + creature.status);
 
       if (description === 'was born') {
         stats.born += 1;
@@ -278,7 +329,7 @@ var game = (function () {
     };
 
     exports.setSpeed = function (val) {
-      speed = val || 1;
+      speed = +val || 1;
       return speed;
     };
 
