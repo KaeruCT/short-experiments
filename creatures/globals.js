@@ -107,8 +107,8 @@ var SPECIES = {
     plants: true,
     maxEnergy: MAX*5,
     maxHealth: MAX*2,
-    gestation: 1 * DAY,
-    maxAge: 6 * MONTH,
+    gestation: 1.6 * DAY,
+    maxAge: 1 * MONTH,
     speed: 8
   },
   Boar: {

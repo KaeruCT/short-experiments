@@ -7,6 +7,7 @@ var game = (function () {
     var w = DIM;
     var h = DIM;
     var m = {x: 0, y: 0}; // normalized mouse coords
+    var mmoved;
     var ctx; // canvas ctx
     var queuedLogs = [];
     var renderTime;
@@ -70,6 +71,7 @@ var game = (function () {
 
       c.onmousemove = function (e) {
         m = {x: norm(e.offsetX), y: norm(e.offsetY)};
+        mmoved = true;
       };
     };
 
@@ -81,7 +83,7 @@ var game = (function () {
       ctx.clearRect(0, 0, w*s, h*s);
 
       places.forEach(function (p) {
-        if (circleContains(p.x, p.y, p.radius, m.x, m.y)) {
+        if (mmoved && circleContains(p.x, p.y, p.radius, m.x, m.y)) {
           if (!focusedPlace || distance(p, m) < distance(focusedPlace, m)) {
             // get closest place
             focusedPlace = p;
@@ -134,7 +136,7 @@ var game = (function () {
       };
 
       creatures.forEach(function (c) {
-        if (circleContains(c.x, c.y, NEARNESS, m.x, m.y)) {
+        if (mmoved && circleContains(c.x, c.y, NEARNESS, m.x, m.y)) {
           if (!focusedCreature || distance(c, m) < distance(focusedCreature, m)) {
             // get closest creature
             focusedCreature = c;
@@ -210,6 +212,7 @@ var game = (function () {
           logInfo.scrollTop = logInfo.scrollHeight;
         }
       }
+      mmoved = false;
     };
 
     exports.creaturesNearTo = function (c1) {

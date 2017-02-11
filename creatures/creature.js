@@ -154,6 +154,11 @@ Creature.prototype = {
     if (!this.place) {
       return false;
     }
+    var dx = Math.abs(this.x-this.place.x);
+    if (dx > this.place.radius) return false;
+    var dy = Math.abs(this.y-this.place.y);
+    if (dy > this.place.radius) return false;
+    if (dx+dy <= this.place.radius) return true;
     return distance(this, this.place) < this.place.radius;
   },
   leavePlace: function () {
@@ -310,10 +315,10 @@ Creature.prototype = {
     }
   },
   eatsMeat: function () {
-    return !!SPECIES[this.species].meat;
+    return SPECIES[this.species].meat;
   },
   eatsPlants: function () {
-    return !!SPECIES[this.species].plants;
+    return SPECIES[this.species].plants;
   },
   sleep: function () {
     // sleep will recharge energy at 2/3
