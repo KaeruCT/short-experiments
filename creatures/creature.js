@@ -107,6 +107,7 @@ Creature.prototype = {
       this.place = game.nearestPlaceTo(this);
       if (this.place) {
         this.emit('is heading to', this.place);
+        return;
       }
     }
 
@@ -123,12 +124,12 @@ Creature.prototype = {
   moveTo: function (target) {
     var angle = Math.atan2(target.y - this.y, target.x - this.x);
     angle += (Math.PI/8)*(Math.random()-Math.random());
-    this.x += Math.cos(angle) / UNIT * this.speed;
-    this.y += Math.sin(angle) / UNIT * this.speed;
+    this.x += Math.cos(angle) * this.speed/UNIT;
+    this.y += Math.sin(angle) * this.speed/UNIT;
   },
   planMove: function () {
-    if (this.hungry && this.health < MAX/10) {
-      // hunger and low health will make creatures leave for food
+    if (this.hungry) {
+      // hunger will make creatures leave for food
       this.leavePlace();
     }
     if (this.settled) {
@@ -244,12 +245,18 @@ Creature.prototype = {
       }
       for (var i = 0; i < babies; i++) {
         var gender = randv(GENDERS);
+        var name;
+        if (i === 0) {
+          name = gender === 'F' ? fuseNames(this.name, this.partner.name) : fuseNames(this.partner.name, this.name);
+        } else {
+          name = randv(NAMES[gender]);
+        }
         var baby = this.game.addCreature({
           species: this.species,
           gender: gender,
           x: this.x,
           y: this.y,
-          name: gender === 'F' ? fuseNames(this.name, this.partner.name) : fuseNames(this.partner.name, this.name),
+          name: name,
           ancestors: [this, this.partner]
         });
         this.emit('gave birth to', baby);

@@ -54,7 +54,7 @@ var PLACES = [
   'Kalgan'
 ];
 var NAMES = {
-  M: ['Herbie', 'Zack', 'Samuel', 'Viktor', 'MC Ride', 'Lemmy', 'Freddie', 'Travis', 'Ernesto', 'Julio', 'Pablo', 'Rafael', 'Gerardo', 'James', 'Michael', 'Jose', 'Joe', 'Ken', 'Jack', 'Rafael', 'Kanye', 'Luis', 'Roberto', 'Chance', 'Carlos', 'Alejandro', 'Frank', 'Diego', 'Justin', 'Manuel', 'Victor', 'Gabriel', 'Fabian', 'Donald', 'Mohammed', 'Stan', 'Jeff', 'Oscar', 'David', 'Devin', 'William', 'Marcus'],
+  M: ['Horatio', 'Andrew', 'Herbie', 'Zack', 'Samuel', 'Viktor', 'MC Ride', 'Lemmy', 'Freddie', 'Travis', 'Ernesto', 'Julio', 'Pablo', 'Rafael', 'Gerardo', 'James', 'Michael', 'Jose', 'Joe', 'Ken', 'Jack', 'Rafael', 'Kanye', 'Luis', 'Roberto', 'Chance', 'Carlos', 'Alejandro', 'Frank', 'Diego', 'Justin', 'Manuel', 'Victor', 'Gabriel', 'Fabian', 'Donald', 'Mohammed', 'Stan', 'Jeff', 'Oscar', 'David', 'Devin', 'William', 'Marcus'],
   F: ['Ericka', 'Rosa', 'Catalina', 'Jade', 'Jenny', 'Jaime', 'Janice', 'Lauryn', 'Maria', 'Adriana', 'Ana', 'Laura', 'Gabriela', 'Nicole', 'Melissa', 'Katherine', 'Karen', 'Karina', 'Claudia', 'Sofia', 'Julia', 'Andrea', 'Lisa', 'Hillary', 'Daniela', 'Alexa', 'Wanda', 'Isabelle', 'Michelle', 'Cassandra', 'Samantha', 'Francisca', 'Yuki', 'Natalia', 'Taylor', 'Paula', 'Haruhi', 'Miku', 'Bianca', 'Yoko', 'Rita', 'Remy']
 };
 
@@ -80,11 +80,29 @@ var SPECIES = {
   Lizard: {
     plants: true,
     meat: true,
-    maxEnergy: MAX*1.5,
-    maxHealth: MAX*0.5,
-    speed: 4,
+    maxEnergy: MAX*1.7,
+    maxHealth: MAX*3,
+    speed: 5,
     gestation: 3 * WEEK,
-    maxAge: 3 * MONTH
+    maxAge: 2 * MONTH
+  },
+  Ostrich: {
+    plants: true,
+    meat: true,
+    maxEnergy: MAX*4,
+    maxHealth: MAX*2,
+    speed: 9,
+    gestation: 2 * WEEK,
+    maxAge: 2.5 * MONTH
+  },
+  Penguin: {
+    plants: true,
+    meat: true,
+    maxEnergy: MAX*2,
+    maxHealth: MAX*4,
+    speed: 4.5,
+    gestation: 4 * WEEK,
+    maxAge: 7 * MONTH
   },
   Turtle: {
     plants: true,
@@ -97,19 +115,19 @@ var SPECIES = {
   },
   Mouse: {
     plants: true,
-    maxEnergy: MAX*3,
-    maxHealth: MAX*4,
-    gestation: 0.5 * DAY,
-    maxAge: 4 * MONTH,
+    maxEnergy: MAX*1.5,
+    maxHealth: MAX*2.3,
+    gestation: 1 * DAY,
+    maxAge: 2 * MONTH,
     speed: 6,
   },
   Rabbit: {
     plants: true,
-    maxEnergy: MAX*5,
-    maxHealth: MAX*2,
+    maxEnergy: MAX*3,
+    maxHealth: MAX*1.5,
     gestation: 1.6 * DAY,
-    maxAge: 1 * MONTH,
-    speed: 8
+    maxAge: 1.3 * MONTH,
+    speed: 7
   },
   Boar: {
     plants: true,
@@ -131,19 +149,27 @@ var SPECIES = {
   },
   Dragon: {
     meat: true,
-    maxEnergy: MAX*2,
-    maxHealth: MAX*3,
-    speed: 2.5,
-    gestation: 1.2 * WEEK,
-    maxAge: 4 * YEAR
+    maxEnergy: MAX*8,
+    maxHealth: MAX*7,
+    speed: 5.5,
+    gestation: 1.1 * WEEK,
+    maxAge: 10 * YEAR
   },
   Elephant: {
     plants: true,
-    maxEnergy: MAX*4,
-    maxHealth: MAX*6,
+    maxEnergy: MAX*5,
+    maxHealth: MAX*7,
     speed: 2,
-    gestation: 4 * WEEK,
-    maxAge: 3 * YEAR
+    gestation: 3 * WEEK,
+    maxAge: 7 * YEAR
+  },
+  Rhinoceros: {
+    plants: true,
+    maxEnergy: MAX*9,
+    maxHealth: MAX*8,
+    speed: 1.2,
+    gestation: 2 * WEEK,
+    maxAge: 4 * MONTH
   },
   Koala: {
     plants: true,
@@ -217,6 +243,6 @@ var COLORS = {
   placeEmpty: '#5B6358',
   placeFull: '#637766',
   placePlants: 'rgba(20, 80, 20, 0.7)',
-  focus: 'rgba(255, 255, 255, 0.6)',
+  focus: 'rgba(225, 225, 255, 0.6)',
   bg: '#352E29'
 };

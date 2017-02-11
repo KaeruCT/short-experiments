@@ -33,6 +33,7 @@ li {
   margin-top: .5em;
   padding-top: .5em;
   width: 100%;
+  font-size: 12px;
 }
 .container {
   display: flex;
@@ -49,7 +50,7 @@ li {
   margin: 0 auto;
   display: block;
 }
-#controls, #p-info, #c-info {
+#controls, #p-info, #c-info, #all-c-info {
   padding: .5em;
 }
 #speed-slider {
@@ -60,8 +61,11 @@ li {
   margin-top: .5em;
   padding-top: .5em;
 }
-#controls, .info {
+#controls, #all-c-info, .info {
   margin-bottom: .5em;
+}
+#all-c-info {
+  font-size: 11px;
 }
 #log {
   margin: 0 .5em;
@@ -73,10 +77,6 @@ li {
   font-family: monospace;
   height: 95%;
   width: 100%;
-}
-.status>.tnode {
-  max-height: 400px;
-  overflow: scroll;
 }
 .tnode {
   margin-left: 8px;
@@ -102,14 +102,10 @@ h2 {
   flex-direction: column;
 }
 .h {
-  flex: 1 1 10%;
-}
-.h-full {
-  flex: 3 1 90%;
-}
-.h, .h-full {
+  flex: 1 1 33%;
   background: #1a1a1a;
   border: #333 1px solid;
+  overflow: scroll;
 }
 .l, .r {
   flex: 1 6 25%;

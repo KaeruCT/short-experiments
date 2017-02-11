@@ -9,6 +9,7 @@ var game = (function () {
     var m = {x: 0, y: 0}; // normalized mouse coords
     var mmoved;
     var ctx; // canvas ctx
+    var cto; // canvas text offset
     var queuedLogs = [];
     var renderTime;
 
@@ -16,7 +17,7 @@ var game = (function () {
     var creatures = [];
     var focusedPlace = null;
     var focusedCreature = null;
-    var generalInfo, logInfo, placeInfo, creatureInfo;
+    var generalInfo, logInfo, placeInfo, creatureInfo, creaturesInfo;
     var paused = true;
 
     var stats = {
@@ -47,6 +48,11 @@ var game = (function () {
       return c.name + ' (' + gender + ' ' + c.species + ')';
     }
 
+    function creatureLink(c) {
+      // TODO: cant click elements that are constnatly rerendering :(
+      return '<a href="#" class="creature-link" data-id="'+c.id+'">' + creatureDesc(c) + '</a>';
+    }
+
     function familyTree(ancestors) {
       if (!ancestors.length) {
         return '';
@@ -61,6 +67,7 @@ var game = (function () {
       generalInfo = opts.generalInfo;
       placeInfo = opts.placeInfo;
       creatureInfo = opts.creatureInfo;
+      creaturesInfo = opts.creaturesInfo;
       logInfo = opts.logInfo;
       ctx = c.getContext('2d');
       c.width = w*s;
@@ -68,6 +75,9 @@ var game = (function () {
       c.style.width = (w*s)+"px";
       c.style.height = (h*s)+"px";
       c.style.background = COLORS.bg;
+      ctx.font = '9px sans-serif';
+      ctx.textBaseline = 'middle';
+      cto = ctx.measureText('Z').width/2;
 
       c.onmousemove = function (e) {
         m = {x: norm(e.offsetX), y: norm(e.offsetY)};
@@ -122,7 +132,7 @@ var game = (function () {
           str += '</div>';
           if (p.creatures.length) {
             str += title('Population');
-            str += '<ul><li>' + p.creatures.map(creatureDesc).join('</li><li>') + '</li></ul>';
+            str += '<ul><li>' + p.creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
           }
           placeInfo.innerHTML = str;
         }
@@ -143,19 +153,26 @@ var game = (function () {
           }
         }
 
+        var color;
         if (c.gender === 'M') {
-          ctx.fillStyle = COLORS.male;
+          color = COLORS.male;
         } else {
           if (c.partner) {
-            ctx.fillStyle = COLORS.pregnant;
+            color = COLORS.pregnant;
           } else {
-            ctx.fillStyle = COLORS.female;
+            color = COLORS.female;
           }
         }
 
-        ctx.beginPath();
-        ctx.arc(c.x*s, c.y*s, crm(c), 0, 2*Math.PI, false);
-        ctx.fill();
+        if (c.asleep) {
+          ctx.fillStyle = color;
+          ctx.fillText('Z', c.x*s-cto, c.y*s);
+        } else {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(c.x*s, c.y*s, crm(c), 0, 2*Math.PI, false);
+          ctx.fill();
+        }
       });
 
       if (focusedCreature && !focusedCreature.dead) {
@@ -178,7 +195,7 @@ var game = (function () {
           str += label('Sleeping', c.asleep ? 'Yes' : 'No');
           str += label('Hungry', c.hungry ? 'Yes' : 'No');
           str += label('Settled', c.settled ? 'At ' + c.place.name : (c.place ? 'Heading to ' + c.place.name : 'No'));
-          str += label('Pregnant', c.partner ? 'From ' + creatureDesc(c.partner) : 'No');
+          str += label('Pregnant', c.partner ? 'From ' + creatureLink(c.partner) : 'No');
           if (c.partner) {
             str += label('Due in', formatDuration(c.pregnancy.timeLeft()));
           }
@@ -199,6 +216,9 @@ var game = (function () {
         general += label('Births', stats.born);
         general += label('Deaths', stats.died);
         generalInfo.innerHTML = general;
+
+        var creaturesList = '<ul><li>' + creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
+        creaturesInfo.innerHTML = creaturesList;
 
         if (logInfo.children.length >= 100 && queuedLogs.length) {
           // TODO: make configurable?

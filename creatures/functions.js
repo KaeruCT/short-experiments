@@ -1,3 +1,5 @@
+// todo: list of all animals
+
 function randv(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -43,6 +45,20 @@ function fuseNames(name1, name2) {
     name += name2[i];
     if (i >= name2.length && !isVocal(name2[i]) || name.length > MAX_NAME_LENGTH/2) break;
   }
+  var prev = '';
+  var sameCount = 0;
+  name.split('').map(function (c) {
+    var ret = c;
+    if (prev === c) {
+      sameCount += 1;
+    }
+    if (sameCount == 2) {
+      ret = '';
+      sameCount = 1;
+    }
+    prev = c;
+    return ret;
+  });
   return name;
 }
 

@@ -4,6 +4,7 @@ window.onload = function () {
       generalInfo: document.getElementById('info'),
       placeInfo: document.getElementById('p-info'),
       creatureInfo: document.getElementById('c-info'),
+      creaturesInfo: document.getElementById('all-c-info'),
       logInfo: document.getElementById('log')
     });
 
