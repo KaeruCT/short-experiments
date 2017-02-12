@@ -13,6 +13,7 @@ window.onload = function () {
     });
 
     function checkCreatureLink(e) {
+      e.preventDefault();
       var target = e.target;
       var cssClass = target.getAttribute('class');
       if (cssClass && cssClass.indexOf('creature-link') !== -1) {
@@ -46,11 +47,13 @@ window.onload = function () {
 
     for (var i = 0; i < 100; i++) {
       var gender = randv(GENDERS);
+      var species = randv(Object.keys(SPECIES));
       game.addCreature({
         name: randv(NAMES[gender]),
-        species: randv(Object.keys(SPECIES)),
+        species: species,
         x: randint(0, DIM),
         y: randint(0, DIM),
+        energy: randint(SPECIES[species].maxEnergy, SPECIES[species].maxEnergy/2),
         gender: gender
       });
     }
