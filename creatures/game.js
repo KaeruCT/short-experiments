@@ -12,6 +12,8 @@ var game = (function () {
     var cto; // canvas text offset
     var queuedLogs = [];
     var renderTime;
+    var id = 0;
+    var refreshCreaturesHTML = false;
 
     var places = [];
     var creatures = [];
@@ -43,22 +45,31 @@ var game = (function () {
       return str;
     }
 
-    function creatureDesc(c) {
+    function creatureDesc(c, showExtraInfo) {
+      if (showExtraInfo === false) {
+        return c.name;
+      }
       var gender = c.gender === 'M' ? 'male' : 'female';
       return c.name + ' (' + gender + ' ' + c.species + ')';
     }
 
-    function creatureLink(c) {
-      // TODO: cant click elements that are constnatly rerendering :(
-      return '<a href="#" class="creature-link" data-id="'+c.id+'">' + creatureDesc(c) + '</a>';
+    function creatureLink(c, showExtraInfo) {
+      if (c.dead) {
+        return creatureDesc(c, showExtraInfo);
+      }
+      var cssClass = 'creature-link';
+      if (focusedCreature === c) {
+        cssClass += ' focused';
+      }
+      return '<a href="#" class="'+cssClass+'" data-id="'+c.id+'">' + creatureDesc(c, showExtraInfo) + '</a>';
     }
 
     function familyTree(ancestors) {
       if (!ancestors.length) {
         return '';
       }
-      var str = '<div class="tnode">- Mother: ' + ancestors[0].name + familyTree(ancestors[0].ancestors) + '</div>';
-      str += '<div class="tnode">- Father: ' + ancestors[1].name + familyTree(ancestors[1].ancestors) + '</div>';
+      var str = '<div class="tnode">- Mother: ' + creatureLink(ancestors[0], false) + familyTree(ancestors[0].ancestors) + '</div>';
+      str += '<div class="tnode">- Father: ' + creatureLink(ancestors[1], false) + familyTree(ancestors[1].ancestors) + '</div>';
       return str;
     };
 
@@ -132,7 +143,7 @@ var game = (function () {
           str += '</div>';
           if (p.creatures.length) {
             str += title('Population');
-            str += '<ul><li>' + p.creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
+            str += '<ul class="creature-list"><li>' + p.creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
           }
           placeInfo.innerHTML = str;
         }
@@ -150,6 +161,7 @@ var game = (function () {
           if (!focusedCreature || distance(c, m) < distance(focusedCreature, m)) {
             // get closest creature
             focusedCreature = c;
+            refreshCreaturesHTML = true;
           }
         }
 
@@ -178,7 +190,7 @@ var game = (function () {
       if (focusedCreature && !focusedCreature.dead) {
         var c = focusedCreature;
         ctx.strokeStyle = COLORS.focus;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.arc(c.x*s, c.y*s, crm(c)+0.5, 0, 2*Math.PI, false);
         ctx.stroke();
@@ -210,15 +222,19 @@ var game = (function () {
         creatureInfo.innerHTML = '';
       }
 
-      if (refreshHTML) {
+      if (refreshHTML || refreshCreaturesHTML) {
         var general = label('Date', moment(time * 1000).format(DATE_FORMAT));
         general += label('Population', creatures.length);
         general += label('Births', stats.born);
         general += label('Deaths', stats.died);
         generalInfo.innerHTML = general;
 
-        var creaturesList = '<ul><li>' + creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
-        creaturesInfo.innerHTML = creaturesList;
+        if (refreshCreaturesHTML) {
+          var creaturesList = title('Population');
+          creaturesList += '<ul><li>' + creatures.map(creatureLink).join('</li><li>') + '</li></ul>';
+          creaturesInfo.innerHTML = creaturesList;
+          refreshCreaturesHTML = false;
+        }
 
         if (logInfo.children.length >= 100 && queuedLogs.length) {
           // TODO: make configurable?
@@ -281,7 +297,7 @@ var game = (function () {
           if (!c.eatsMeat()) {
             val += (p1.plants - p2.plants)/MAX;
           } else {
-            val += 10*(p1.creatures.filter(filters.differentSpecies(c)).length - p2.creatures.filter(filters.differentSpecies(c)).length);
+            val += 1000*(p1.creatures.filter(filters.differentSpecies(c)).length - p2.creatures.filter(filters.differentSpecies(c)).length);
           }
         } else {
           // prefer places with other creatures if not hungry
@@ -323,10 +339,12 @@ var game = (function () {
 
       if (description.startsWith('was born')) {
         stats.born += 1;
+        refreshCreaturesHTML = true;
       }
       if (description.startsWith('died')) {
         stats.died += 1;
         remove(creatures, creature);
+        refreshCreaturesHTML = true;
       }
     };
 
@@ -361,5 +379,18 @@ var game = (function () {
       return paused;
     };
 
+    exports.focusCreature = function (id) {
+      for (var i = 0; i < creatures.length; i++) {
+        if (creatures[i].id === id) {
+          focusedCreature = creatures[i];
+          refreshCreaturesHTML = true;
+          return;
+        }
+      }
+    }
+
+    exports.getNewId = function () {
+      return ++id;
+    }
     return exports;
 }());

@@ -109,8 +109,8 @@ var SPECIES = {
     meat: true,
     maxEnergy: MAX*1.7,
     maxHealth: MAX*1.6,
-    gestation: 1 * WEEK,
-    maxAge: 5 * MONTH,
+    gestation: 2.5 * WEEK,
+    maxAge: 3 * MONTH,
     speed: 0.7
   },
   Mouse: {

@@ -1,12 +1,29 @@
 window.onload = function () {
+    var creaturesInfo = document.getElementById('all-c-info');
+    var creatureInfo = document.getElementById('c-info');
+    var placeInfo = document.getElementById('p-info');
+
     game.init({
       canvas: document.getElementById('stage'),
       generalInfo: document.getElementById('info'),
-      placeInfo: document.getElementById('p-info'),
-      creatureInfo: document.getElementById('c-info'),
-      creaturesInfo: document.getElementById('all-c-info'),
+      placeInfo: placeInfo,
+      creatureInfo: creatureInfo,
+      creaturesInfo: creaturesInfo,
       logInfo: document.getElementById('log')
     });
+
+    function checkCreatureLink(e) {
+      var target = e.target;
+      var cssClass = target.getAttribute('class');
+      if (cssClass && cssClass.indexOf('creature-link') !== -1) {
+        var creatureId = +target.getAttribute('data-id');
+        game.focusCreature(creatureId);
+      }
+    }
+
+    creaturesInfo.onclick = checkCreatureLink;
+    creatureInfo.onclick = checkCreatureLink;
+    placeInfo.onclick = checkCreatureLink;
 
     var pauseBtn = document.getElementById('pause');
     pauseBtn.onclick = function (e) {

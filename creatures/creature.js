@@ -1,5 +1,6 @@
 var Creature = function (opts, game) {
   var species = SPECIES[opts.species];
+  this.id = game.getNewId();
   this.game = game;
   this.name = opts.name;
   this.born = 0;
@@ -96,6 +97,9 @@ Creature.prototype = {
     if (this.happiness < 0) {
       this.happiness = 0;
     }
+    if (this.speed <= 1) {
+      this.speed = 1;
+    }
 
     this.tooOld = game.getTime() - this.born > this.maxAge;
     if (this.health <= 0 || this.tooOld) {
@@ -112,14 +116,14 @@ Creature.prototype = {
     }
 
     if (!this.partner && this.settled && this.emigrating.check()) {
-      // do not leave places if prenant (this.partner)
+      // do not leave places if pregnant (this.partner)
       this.leavePlace();
     }
 
-    if (this.hungry && !this.settled) {
+    //if (this.hungry && !this.settled) {
       // if not settled and hungry, search again!
-      this.place = null;
-    }
+      //this.place = null;
+    //}
   },
   moveTo: function (target) {
     var angle = Math.atan2(target.y - this.y, target.x - this.x);
@@ -227,7 +231,7 @@ Creature.prototype = {
     if (this.partner) {
       return;
     }
-    if (randint(0, 1) === 0) {
+    if (randint(0, 2) === 0) {
       this.emit('became pregnant from ', dad);
       this.partner = dad;
       this.pregnancy.set();
@@ -241,7 +245,7 @@ Creature.prototype = {
       var babies = 1;
       if (randint(0, 2) === 0) {
         // randomly have more than one baby!
-        babies = randint(2, 6);
+        babies = randint(2, 3);
       }
       for (var i = 0; i < babies; i++) {
         var gender = randv(GENDERS);
