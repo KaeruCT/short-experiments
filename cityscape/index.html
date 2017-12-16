@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            layers = [],
+            w, h, parallax = 100000;
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+            }
+            function scroll(e) {
+
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            resize();
+
+            var layerscnt = 16;
+            for (var i = 0; i < layerscnt; i++) {
+                var layer = [];
+                var cnt = Math.floor(8+Math.random()*8);
+                for (var j = 0; j < cnt; j++) {
+                    var u = h/(cnt+i);
+                    layer.push({
+                        h: u/2 + (Math.random() * (u)*cnt) * 0.6,
+                        w: 25 + Math.random()*60
+                    });
+                }
+                layers.push(layer);
+            }
+
+            var base = {
+                r: 1,
+                g: 0.6,
+                b: 0.7
+            };
+
+            var speed = 0.4;
+            var colors = [];
+            for (var i = layers.length-1; i >= 0; i--) {
+                var cl = 255*0.15 + (255*0.4 / layers.length * i);
+                var r = Math.floor(cl*base.r);
+                var g = Math.floor(cl*base.g);
+                var b = Math.floor(cl*base.b);
+                var o = 1 - (1 / layers.length * i) * 0.2;
+                colors.push(`rgba(${r}, ${g}, ${b}, ${o})`);
+            }
+            
+            !function loop () {
+                var p, i, j;
+                parallax+=speed;
+                // render
+                var grd = ctx.createLinearGradient(w, 0, w, h);
+                grd.addColorStop(0, '#949fcf');   
+                grd.addColorStop(0.1, '#c0c9d6');
+                grd.addColorStop(0.2, '#dcc2ad');
+                grd.addColorStop(0.45, '#d28978');
+                grd.addColorStop(1, '#42172a');
+                
+                ctx.fillStyle = grd;
+                ctx.fillRect(0, 0, w, h);
+
+                // draw cloud 
+                function cloudy(i) {
+                    return h*0.3 + Math.cos(i+parallax/5) * h*0.02;
+                }
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                for (var i = 0; i < 10; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, (h*i/10)+cloudy(w+i));
+                    var lx = 0;
+                    do {
+                        lx += w * 0.03;
+                        ctx.lineTo(lx, (h*i/10)+cloudy(lx+i));
+                    } while (lx <= w);
+                    ctx.lineTo(w, h);
+                    ctx.lineTo(0, h);
+                    ctx.fill();
+                }
+
+                for (i = 0; i < layers.length; i++) {
+                    var x = 0;
+                    for (j = 0; j < layers[i].length; j++) {
+                        var r = layers[i][j];
+                        x += w*0.1;
+                        var y = h-r.h;
+                        var rx = x - (i*r.w + parallax*(i+1));
+
+                        while (rx+r.w < 0) {
+                            rx += w+r.w-1;
+                        }
+
+                        ctx.fillStyle = colors[i];
+                        ctx.fillRect(rx, y, r.w, r.h);
+
+                        var spad = 4;
+                        var sw = 2;
+                        var sh = 4;
+                        for (var sx = spad; sx < r.w-spad; sx += spad+sw) {
+                            for (var sy = spad; sy < r.h-spad; sy += spad+sh) {
+                                var opac;
+                                if ((i*j) % 2 === 0) {
+                                    opac = Math.floor(parallax * (y*sx*sy) / 100000000) % 2 === 0 ? 0.5 : 0.1;
+                                } else {
+                                    opac = Math.floor(parallax * (y*(r.w-sx)*(r.h-sy)) / 100000000) % 2 === 0 ? 0.1 : 0.5;
+                                }
+                                ctx.fillStyle = `rgba(255, 255, 240, ${opac})`;
+                                ctx.fillRect(rx + sx, y + sy, sw, sh);
+                            }    
+                        }
+
+                        x += r.w;
+                    }
+                    
+                }
+                t++;
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
