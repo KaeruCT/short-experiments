@@ -43,7 +43,7 @@
 
             resize();
 
-            var layerscnt = 16;
+            var layerscnt = 14;
             for (var i = 0; i < layerscnt; i++) {
                 var layer = [];
                 var cnt = Math.floor(8+Math.random()*8);
@@ -121,8 +121,8 @@
                         ctx.fillStyle = colors[i];
                         ctx.fillRect(rx, y, r.w, r.h);
 
-                        var spad = 4;
-                        var sw = 2;
+                        var spad = 6;
+                        var sw = 3;
                         var sh = 4;
                         for (var sx = spad; sx < r.w-spad; sx += spad+sw) {
                             for (var sy = spad; sy < r.h-spad; sy += spad+sh) {
