@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            w, h;
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+            }
+            function scroll(e) {
+
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            function color(n) { // n => between 0 and 1
+                var r = Math.floor(n*180),
+                    g = Math.floor(n*255),
+                    b = Math.floor(n*230),
+                    a = n;
+
+                return 'rgba('+r+','+g+', '+b+','+a+')';
+            }
+
+            resize();
+
+            var pf = -Math.max(w, h); // push factor
+            var linkdur = 200; // how many frames to keep connections
+            var mind = 40; // how close to be to get connected
+            var R = 3; // circle radius
+            var r = Math.min(w, h)/2*0.9 // screen radius
+            var maxspeed = 4;
+            var cnt = 300;
+            for (var i = 0; i < cnt; i++) {
+                var ang = Math.random() * pi2;
+                var rsq = Math.sqrt(Math.random() * Math.pow(r, 2));
+                var x = rsq * Math.cos(ang);
+                var y = rsq * Math.sin(ang);
+
+                obj.push({
+                    x: w/2+x,
+                    y: h/2+y,
+                    dx: Math.random()*maxspeed * Math.random()>0.5?1:-1,
+                    dy: Math.random()*maxspeed * Math.random()>0.5?1:-1,
+                    c: color(0.8),
+                    r: R
+                });
+            }
+            
+            !function loop () {
+                var p, j, i;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // behave and render
+                for (i = 0; i < obj.length; i++) {
+                    p = obj[i];
+
+                    for (j = 0; j < obj.length; j++) {
+                        if (i === j) continue;
+                        var p2 = obj[j];
+                        var distp2 = Math.hypot(p.x-p2.x, p.y-p2.y);
+
+                        if (distp2 < mind*2) {
+                            var dx = p.x - p2.x;
+                            var dy = p.y - p2.y;
+                            var d = Math.sqrt(dx*dx + dy*dy);
+
+                            d = d + Math.random()*d; // randomize push a bit
+                            d *= pf;
+                            p.dx += dx/d;
+                            p.dy += dy/d;
+                        }
+
+                        if (p.bf) {
+                            if (t - p.bft > linkdur || Math.hypot(p.x-p.bf.x, p.y-p.bf.y) > mind) {
+                                // clean up buddy if time has passed or too far
+                                p.bf.bf = null;
+                                p.bf = null;
+                                p.bft = 0;
+                            }
+                        } else if (distp2 < mind) {
+                            if (Math.random() < 0.05) {
+                                // add buddy
+                                p.bf = p2;
+                                p2.bf = p;
+                                p.bft = t;
+                                p.dx *= 0.5;
+                                p.dy *= 0.5;
+                                p2.dx *= 0.5;
+                                p2.dy *= 0.5;
+                            }
+                        }
+
+                        if (Math.random() < 0.0003) {
+                            p.dx += p.dx*Math.random()*0.5;
+                            p.dy += p.dy*Math.random()*0.5;
+                        }
+                    }
+
+                    // edges
+                    // if (p.x-p.r < 0 || p.x+p.r > w) {
+                    //     p.dx = -p.dx;
+                    // }
+                    // if (p.y-p.r < 0 || p.y+p.r > h) {
+                    //     p.dy = -p.dy;
+                    // }
+                    if (Math.hypot(w/2-p.x, h/2-p.y) > r) {
+                        var dx = p.x - w/2;
+                        var dy = p.y - h/2;
+                        var d = Math.sqrt(dx*dx + dy*dy);
+
+                        d = d + Math.random()*d; // randomize push a bit;
+                        d *= -5;
+                        p.dx += dx/d;
+                        p.dy += dy/d;
+                    }
+                    if (p.dx > maxspeed) p.dx = maxspeed;
+                    if (p.dx < -maxspeed) p.dx = -maxspeed;
+                    if (p.dy > maxspeed) p.dy = maxspeed;
+                    if (p.dy < -maxspeed) p.dy = -maxspeed;
+
+                    p.x += p.dx;
+                    p.y += p.dy;
+
+                    // render
+                    ctx.beginPath();
+                    ctx.fillStyle = p.c;
+                    ctx.arc(p.x, p.y, p.r, 0, pi2);
+                    ctx.fill();
+
+                    // render surrounding circle
+                    ctx.fillStyle = color(0.3);
+                    var spd = 2 + Math.abs(p.dx)+Math.abs(p.dy)*0.2;
+                    ctx.arc(p.x, p.y, p.r*spd, 0, pi2);
+                    ctx.fill();
+
+                    if (p.bf) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = color(0.4);
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p.bf.x, p.bf.y);
+                        ctx.stroke();
+                    }
+                }
+                t++;
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
