@@ -58,7 +58,7 @@
             var R = 3; // circle radius
             var r = Math.min(w, h)/2*0.9 // screen radius
             var maxspeed = 4;
-            var cnt = 300;
+            var cnt = 150;
             for (var i = 0; i < cnt; i++) {
                 var ang = Math.random() * pi2;
                 var rsq = Math.sqrt(Math.random() * Math.pow(r, 2));
@@ -74,7 +74,7 @@
                     r: R
                 });
             }
-            
+
             !function loop () {
                 var p, j, i;
 
