@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#111;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <h1 id="loading">Loading...</h1>
+    <div id="info">click or press space</div>
+    <canvas id="stage"></canvas>
+    <audio src="igno.mp3#t=0" loop oncanplaythrough="loading.style.display='none';"/>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0, prevt = 0, // t = global timer,
+            bpmt = 0,
+            BPM = 120,
+            TEMPO = 2,
+            bci = 0, // beat colors index
+            colors = [], // computed beat colors
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            paused = true,
+            audio = document.querySelector('audio'),
+            info = document.querySelector('#info'),
+            loading = document.querySelector('#loading'),
+            w, h;
+
+            //audio.crossOrigin = 'anonymous';
+            var actx = new AudioContext();
+            var audioSrc = actx.createMediaElementSource(audio);
+            var analyser = actx.createAnalyser();
+            audioSrc.connect(analyser);
+            var fd = new Uint8Array(analyser.frequencyBinCount);
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+              
+            }
+            function scroll(e) {
+
+            }
+            
+            function click(e) {
+              paused = !paused;
+              if (paused) {
+                info.style.display = 'block';
+                audio.pause();
+              } else {
+                audio.play();
+                info.style.display = 'none';
+              }
+              
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize', resize);
+            q.addEventListener('click', click);
+            q.addEventListener('keydown', function (e) {
+              if (e.which===32) click();
+            });
+            
+            function shuffle(o) {
+                for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+                return o;
+            };
+            
+            function bpm2ms(bpm) {
+              return 60*1000/bpm;
+            }
+
+            function color(i) { // this function is random but caches its result
+              if (colors[i]) return new Color(colors[i]);
+              
+              function Color(color) {
+                color = color || {};
+                var rnd = shuffle([20, 120, 60]);
+                this.r = color.r || rnd[0];
+                this.g = color.g || rnd[1];
+                this.b =  color.b || rnd[2];
+                this.a = 1;
+                this.str = function () {
+                  return 'rgba('+this.r+','+this.g+', '+this.b+','+this.a+')';;
+                };
+              }
+              var color = new Color();
+              colors[i] = color;
+              return color;
+            }
+
+            function update(dt) {
+              bpmt += dt;
+              console.log(fd);
+              
+              if (bpmt >= bpm2ms(BPM/TEMPO) || bpmt === 0) {
+                // do things on beat
+                
+              }
+            }
+            
+            function render() {
+              ctx.clearRect(0, 0, w, h);
+              // render
+              obj.forEach(function (p) {
+                ctx.beginPath();
+                ctx.fillStyle = p.color.str();
+                ctx.strokeStyle = 'rgba(255,255,255,'+(p.color.a/2)+')';
+                ctx.arc(
+                  p.x,
+                  p.y,
+                  p.r,
+                  0,
+                  pi2
+                );
+                ctx.fill();
+                ctx.stroke();
+              });
+            }
+
+            resize();
+
+            !function loop () {
+                if (!paused) {
+                  var now = new Date().valueOf();
+                  dt = prevt ? now - prevt : 0;
+                  t += dt;
+                  analyser.getByteFrequencyData(fd);
+                  update(dt);
+                  render(dt);
+                }
+                anim(loop);
+                prevt = now;
+            }();
+    </script>
+</body>
+</html>
