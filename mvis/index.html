@@ -152,10 +152,10 @@
             circles.push(beatCircle);
             
             const fdlen = 256;
-            const maxBarHeight = 400;
+            const maxBarHeight = w;
             const maxVal = 255;
-            const pad = 50;
-            const barWidth = (w-pad*2)/fdlen;
+            const pad = 0;
+            const barWidth = (h-pad*2)/fdlen;
             const rules = [
               {
                 from: Math.floor(0),
@@ -227,7 +227,7 @@
                         this.dx *= 2;
                         this.dy *= 2;
                       }
-                    } else {
+                    } else if (this.r < 50) {
                       this.ghost = !this.ghost;
                     }
                   };
@@ -278,24 +278,55 @@
             const waveColor = new Color({
               r: 255, g: 100, b: 200, a: 0.3,
             });
+            const lineColor = new Color({
+              r: 255, g: 100, b: 200, a: 0.6,
+            });
+
             function render() {
               ctx.clearRect(0, 0, w, h);
+              const points = [];
 
               // render audio wave
               for (let i = 0; i < fdlen; i++) {
                 const val = fd[i];
-                if (val !== 0) {
-                  const barHeight = val/maxVal * maxBarHeight;
-                  ctx.beginPath();
-                  ctx.fillStyle = waveColor.str();
-                  ctx.rect(
-                    i*barWidth + pad,
-                    h/2 - barHeight/2,
-                    barWidth,
-                    barHeight
-                  );
-                  ctx.fill();
-                }
+                const barHeight = val/maxVal * maxBarHeight;
+                ctx.beginPath();
+                ctx.fillStyle = waveColor.str();
+                ctx.rect(
+                  w/2 - barHeight/2,
+                  i*barWidth + pad,
+                  barHeight,
+                  barWidth
+                );
+                ctx.fill();
+
+                const mod = Math.abs(Math.sin(t*0.01));
+                const pheight = (val*mod)/maxVal * maxBarHeight;
+                points.push({
+                  x: w/2 - pheight/2,
+                  y: i*barWidth-barWidth/2 + pad,
+                  barHeight: pheight,
+                })
+              }
+
+              // draw wave
+              for (let i = 1; i < points.length; i++) {
+                let p = points[i];
+                let prev = points[i-1];
+                ctx.beginPath();
+                ctx.strokeStyle = lineColor.str();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(prev.x, prev.y);
+                ctx.stroke();
+              }
+              for (let i = 1; i < points.length; i++) {
+                let p = points[i];
+                let prev = points[i-1];
+                ctx.beginPath();
+                ctx.strokeStyle = lineColor.str();
+                ctx.moveTo(p.x+p.barHeight, p.y+barWidth);
+                ctx.lineTo(prev.x+prev.barHeight, prev.y+barWidth);
+                ctx.stroke();
               }
               
               // render circles
