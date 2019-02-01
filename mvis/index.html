@@ -10,7 +10,7 @@
     <h1 id="loading">Loading...</h1>
     <div id="info">click or press space</div>
     <canvas id="stage"></canvas>
-    <audio src="./igno.mp3" loop oncanplaythrough="loading.style.display='none';"></audio>
+    <audio loop oncanplaythrough="loading.style.display='none';"></audio>
     <script>
         const q = window,
             anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
@@ -33,8 +33,21 @@
             var paused = true;
             var w, h;
 
+            function parseQuery(queryString) {
+              var query = {};
+              var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+              for (var i = 0; i < pairs.length; i++) {
+                  var pair = pairs[i].split('=');
+                  query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+              }
+              return query;
+          }
+
             function initAudio() {
+              const q = parseQuery(window.location.search);
               audio = document.querySelector('audio');
+              audio.crossOrigin = 'anonymous';
+              audio.src = q && q.f || './igno.mp3';
               const actx = new AudioContext();
               const audioSrc = actx.createMediaElementSource(audio);
               analyser = actx.createAnalyser();
