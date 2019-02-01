@@ -10,9 +10,9 @@
     <h1 id="loading">Loading...</h1>
     <div id="info">click or press space</div>
     <canvas id="stage"></canvas>
-    <audio src="igno.mp3#t=0" loop oncanplaythrough="loading.style.display='none';"/>
+    <audio src="./igno.mp3" loop oncanplaythrough="loading.style.display='none';"></audio>
     <script>
-        var q = window,
+        const q = window,
             anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
             q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
             q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
@@ -20,27 +20,28 @@
             b = document.getElementsByTagName('body')[0],
             c = document.getElementById('stage'),
             ctx = c.getContext('2d'),
-            t = 0, prevt = 0, // t = global timer,
-            bpmt = 0,
             BPM = 120,
             TEMPO = 2,
-            bci = 0, // beat colors index
             colors = [], // computed beat colors
             pi = Math.PI,
             pi2 = Math.PI*2,
-            obj = [],
-            paused = true,
-            audio = document.querySelector('audio'),
+            circles = [],
             info = document.querySelector('#info'),
-            loading = document.querySelector('#loading'),
-            w, h;
+            loading = document.querySelector('#loading');
+            var audio, fd, analyser;
+            var t = 0;
+            var paused = true;
+            var w, h;
 
-            //audio.crossOrigin = 'anonymous';
-            var actx = new AudioContext();
-            var audioSrc = actx.createMediaElementSource(audio);
-            var analyser = actx.createAnalyser();
-            audioSrc.connect(analyser);
-            var fd = new Uint8Array(analyser.frequencyBinCount);
+            function initAudio() {
+              audio = document.querySelector('audio');
+              const actx = new AudioContext();
+              const audioSrc = actx.createMediaElementSource(audio);
+              analyser = actx.createAnalyser();
+              audioSrc.connect(analyser);
+              audioSrc.connect(actx.destination);
+              fd = new Uint8Array(analyser.frequencyBinCount);
+            }
 
             function resize () {
                 w = q.innerWidth || e.clientWidth || b.clientWidth;
@@ -48,6 +49,7 @@
                 c.width = w;
                 c.height = h;
             }
+            resize();
 
             function mousemove(e) {
               
@@ -62,6 +64,7 @@
                 info.style.display = 'block';
                 audio.pause();
               } else {
+                if (!audio) initAudio();
                 audio.play();
                 info.style.display = 'none';
               }
@@ -77,7 +80,7 @@
             });
             
             function shuffle(o) {
-                for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+                for(let j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
                 return o;
             };
             
@@ -85,67 +88,232 @@
               return 60*1000/bpm;
             }
 
+            function Color(color) {
+              color = color || {};
+              const rnd = color || shuffle([20, 120, 60]);
+              this.r = color.r || rnd[0];
+              this.g = color.g || rnd[1];
+              this.b =  color.b || rnd[2];
+              this.a = color.a || 1;
+              this.str = function () {
+                return 'rgba('+this.r+','+this.g+', '+this.b+','+this.a+')';;
+              };
+            }
+
             function color(i) { // this function is random but caches its result
               if (colors[i]) return new Color(colors[i]);
               
-              function Color(color) {
-                color = color || {};
-                var rnd = shuffle([20, 120, 60]);
-                this.r = color.r || rnd[0];
-                this.g = color.g || rnd[1];
-                this.b =  color.b || rnd[2];
-                this.a = 1;
-                this.str = function () {
-                  return 'rgba('+this.r+','+this.g+', '+this.b+','+this.a+')';;
-                };
-              }
-              var color = new Color();
+              const color = new Color();
               colors[i] = color;
               return color;
             }
 
-            function update(dt) {
-              bpmt += dt;
-              console.log(fd);
-              
-              if (bpmt >= bpm2ms(BPM/TEMPO) || bpmt === 0) {
-                // do things on beat
-                
+            function Circle(x, y, r, color) {
+              this.dx = 0;
+              this.dy = 0;
+              this.x = x;
+              this.y = y;
+              this.r = r;
+              this.color = color;
+              this.gr = 0;
+              this.dead = false;
+              this.immortal = false;
+
+              this.update = () => {
+                if (this.dead) return;
+
+                this.x += this.dx;
+                this.y += this.dy;
+                if (this.gr && this.r) this.r += this.gr;
+                if (this.r < 0) {
+                  this.r = 1;
+                  this.gr = 0;
+                  this.dead = true;
+                }
+                if (this.ac && this.color.a) {
+                  this.color.a += this.ac;
+                }
+                if (this.color.a < 0) {
+                  this.color.a = 0;
+                  this.ac = 0;
+                  this.dead = !this.immortal;
+                }
+                if (this.x < 0 || this.y < 0 || this.x-this.r > w || this.y-this.r > h) {
+                  this.dead = !this.immortal;
+                }
+                if (this.customUpdate) this.customUpdate();
+              };
+            }
+
+            const beatCircle = new Circle(w/2, h/2, Math.min(w, h)/2*0.8, new Color({
+              r: 255, g: 255, b: 255, a: 0.4, immortal: true,
+            }));
+            beatCircle.gr = -5;
+            circles.push(beatCircle);
+            
+            const fdlen = 256;
+            const maxBarHeight = 400;
+            const maxVal = 255;
+            const pad = 50;
+            const barWidth = (w-pad*2)/fdlen;
+            const rules = [
+              {
+                from: Math.floor(0),
+                to: Math.floor(fdlen*0.2),
+                threshold: Math.floor(maxVal*0.95),
+                action: 'pulselow',
+                cooldown: 20,
+              },
+              {
+                from: Math.floor(fdlen*0.6),
+                to: Math.floor(fdlen),
+                threshold: Math.floor(maxVal*0.4),
+                action: 'pulsehigh',
+                cooldown: 50,
+              },
+              {
+                from: Math.floor(fdlen*0.8),
+                to: Math.floor(fdlen),
+                threshold: Math.floor(maxVal*0.01),
+                action: 'tinkle',
+                cooldown: 50,
+              },
+            ];
+
+            function executeRule(r) {
+              let total;
+              r.t = r.t || 0;
+              r.t++;
+              r.lastHit = t;
+
+              switch (r.action) {
+                case 'pulselow':
+                  beatCircle.r = Math.min(w,h)*0.8/2;
+                  beatCircle.gr = -0.7;
+
+                  const hit = new Circle(w/2, h/2, beatCircle.r, new Color({
+                    r: 255, g: 170, b: 230, a: 0.5,
+                  }));
+                  hit.gr = 2;
+                  hit.ac = -0.03;
+                  circles.push(hit);
+                break;
+                case 'pulsehigh':
+                  total = 8;
+                  for (let i = 0; i < total; i++) {
+                    const hi = new Circle(
+                      w/2 + 20*Math.cos(pi2*i/total),
+                      h/2 + 20*Math.sin(pi2*i/total),
+                      beatCircle.r,
+                      new Color({
+                        r: 255, g: 120, b: 200, a: 1,
+                      })
+                    );
+                    hi.gr = 2;
+                    hi.ac = -0.03;
+                    hi.ghost = true;
+                    hi.dx = Math.cos(pi2*i/total);
+                    hi.dy = Math.sin(pi2*i/total);
+                    circles.push(hi);
+                  }
+                break;
+                case 'tinkle':
+                  const tspeeds = [5, 10, 15, 10];
+                  const tinkleUp = function () {
+                    if (this.dx > 10 || this.dy > 10) {
+                      this.gr = 1;
+                      if (!this.ghost) {
+                        this.ghost = true;
+                        this.dx *= 2;
+                        this.dy *= 2;
+                      }
+                    } else {
+                      this.ghost = !this.ghost;
+                    }
+                  };
+                  circles.forEach(t => {
+                    if (t.type === 'tinkle') {
+                      t.dx = -t.dx*1.1;
+                      t.dy = -t.dy*1.1;
+                    }
+                  });
+                  total = 4;
+                  for (let i = 0; i < total; i++) {
+                    const tinkle = new Circle(w/2, h/2, 6, new Color({
+                      r: 255, g: 255, b: 255, a: 0.6,
+                    }));
+                    tinkle.type = 'tinkle';
+                    tinkle.dx = tspeeds[t%tspeeds.length] * Math.cos(r.t + pi2*i/total);
+                    tinkle.dy = tspeeds[t%tspeeds.length] * Math.sin(r.t + pi2*i/total);
+                    tinkle.gr = -0.01;
+                    tinkle.customUpdate = tinkleUp;
+                    circles.push(tinkle);
+                  }
+                  
+                break;
+              }
+            }
+
+            function update() {
+              t++;
+
+              rules.forEach(r => {
+                if (r.lastHit && r.lastHit + r.cooldown > t) return;
+
+                for (let i = r.from; i < r.to; i++) {
+                  const val = fd[i];
+                  if (val >= r.threshold) {
+                    executeRule(r);
+                    break;
+                  }
+                }
+              });
+
+              for (let i = circles.length - 1; i >= 0; i--) {
+                circles[i].update();
+                if (circles[i].dead) circles.splice(i, 1);
               }
             }
             
+            const waveColor = new Color({
+              r: 255, g: 100, b: 200, a: 0.3,
+            });
             function render() {
               ctx.clearRect(0, 0, w, h);
-              // render
-              obj.forEach(function (p) {
+
+              // render audio wave
+              for (let i = 0; i < fdlen; i++) {
+                const val = fd[i];
+                if (val !== 0) {
+                  const barHeight = val/maxVal * maxBarHeight;
+                  ctx.beginPath();
+                  ctx.fillStyle = waveColor.str();
+                  ctx.rect(
+                    i*barWidth + pad,
+                    h/2 - barHeight/2,
+                    barWidth,
+                    barHeight
+                  );
+                  ctx.fill();
+                }
+              }
+              
+              // render circles
+              circles.forEach(c => {
                 ctx.beginPath();
-                ctx.fillStyle = p.color.str();
-                ctx.strokeStyle = 'rgba(255,255,255,'+(p.color.a/2)+')';
-                ctx.arc(
-                  p.x,
-                  p.y,
-                  p.r,
-                  0,
-                  pi2
-                );
-                ctx.fill();
-                ctx.stroke();
+                ctx[c.ghost ? 'strokeStyle' : 'fillStyle'] = c.color.str();
+                ctx.arc(c.x, c.y, c.r, 0, pi2);
+                ctx[c.ghost ? 'stroke' : 'fill']();
               });
             }
 
-            resize();
-
             !function loop () {
                 if (!paused) {
-                  var now = new Date().valueOf();
-                  dt = prevt ? now - prevt : 0;
-                  t += dt;
                   analyser.getByteFrequencyData(fd);
-                  update(dt);
-                  render(dt);
+                  update();
+                  render();
                 }
                 anim(loop);
-                prevt = now;
             }();
     </script>
 </body>
