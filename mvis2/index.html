@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#111;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+        #loading, #info{text-align: center;margin-top: 200px;}
+        #vid{position: fixed;top: 0;right: 0;bottom: 0;left: 0;overflow: hidden;width: 100%;  height: 100%;}
+        #vid video{position: absolute;min-width:100%;min-height:100%;width:auto;height:auto;top:50%;left:50%;transform:translate(-50%,-50%);filter: blur(3px)}
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id="vid">
+      <video loop muted></video>
+    </div>
+    <h1 id="loading">Loading</h1>
+    <div id="info"><br/><br/>click or press space</div>
+    <canvas id="stage"></canvas>
+    <audio loop oncanplaythrough="loading.style.display='none';"></audio>
+    <script>
+        const q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            colors = [], // computed beat colors
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            circles = [],
+            info = document.querySelector('#info'),
+            loading = document.querySelector('#loading'),
+            vid = document.querySelector('video');
+            var audio, fd, analyser;
+            var t = 0;
+            var paused = true;
+            var w, h;
+
+            const COLORS = {
+              main: new Color({
+                r: 255, g: 255, b: 255, a: 0.3,
+              }),
+              hit: new Color({
+                r: 255, g: 255, b: 255, a: 0.3,
+              }),
+              high: new Color({
+                r: 255, g: 255, b: 255, a: 0.4,
+              }),
+              tinkle: new Color({
+                r: 255, g: 255, b: 255, a: 0.5,
+              }),
+              tinkle2: new Color({
+                r: 255, g: 255, b: 255, a: 1,
+              }),
+            }
+
+            function parseQuery(queryString) {
+              var query = {};
+              var pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+              for (var i = 0; i < pairs.length; i++) {
+                  var pair = pairs[i].split('=');
+                  query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+              }
+              return query;
+            }
+
+            function initAudio() {
+              const q = parseQuery(window.location.search);
+              audio = document.querySelector('audio');
+              audio.crossOrigin = 'anonymous';
+              audio.src = q && q.f ||'../../files/macbt-118.mp3';
+              vid.src = q && q.v ||'./vid.webm';
+              const actx = new AudioContext();
+              const audioSrc = actx.createMediaElementSource(audio);
+              analyser = actx.createAnalyser();
+              audioSrc.connect(analyser);
+              audioSrc.connect(actx.destination);
+              fd = new Uint8Array(analyser.frequencyBinCount);
+            }
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+            resize();
+
+            function mousemove(e) {
+              
+            }
+            function scroll(e) {
+
+            }
+            
+            function click(e) {
+              paused = !paused;
+              if (paused) {
+                info.style.display = 'block';
+                audio.pause();
+                vid.pause();
+              } else {
+                if (!audio) initAudio();
+                audio.play();
+                vid.play();
+                info.style.display = 'none';
+              }
+              
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize', resize);
+            q.addEventListener('click', click);
+            q.addEventListener('keydown', function (e) {
+              if (e.which===32) click();
+            });
+            
+            function shuffle(o) {
+                for(let j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+                return o;
+            };
+
+            function Color(color) {
+              color = color || {};
+              const rnd = color || shuffle([20, 120, 60]);
+              this.r = color.r !== undefined ? color.r : rnd[0];
+              this.g = color.g !== undefined ? color.g : rnd[1];
+              this.b = color.b !== undefined ? color.b : rnd[2];
+              this.a = color.a !== undefined ?  color.a : 1;
+              this.str = function () {
+                return 'rgba('+this.r+','+this.g+', '+this.b+','+this.a+')';;
+              };
+            }
+
+            function color(i) { // this function is random but caches its result
+              if (colors[i]) return new Color(colors[i]);
+              
+              const color = new Color();
+              colors[i] = color;
+              return color;
+            }
+
+            function Circle(x, y, r, gr, color) {
+              this.dx = 0;
+              this.dy = 0;
+              this.x = x;
+              this.y = y;
+              this.r = r;
+              this.color = new Color(color); // copy color
+              this.gr = gr || 0;
+              this.dead = false;
+              this.immortal = false;
+
+              this.update = () => {
+                if (this.dead) return;
+
+                this.x += this.dx;
+                this.y += this.dy;
+                if (this.gr && this.r) this.r += this.gr;
+                if (this.r < 0) {
+                  this.r = 1;
+                  this.gr = 0;
+                  this.dead = !this.immortal;
+                }
+                if (this.ac && this.color.a) {
+                  this.color.a += this.ac;
+                }
+                if (this.color.a < 0) {
+                  this.color.a = 0;
+                  this.ac = 0;
+                  this.dead = !this.immortal;
+                }
+                if (this.x < 0 || this.y < 0 || this.x-this.r > w || this.y-this.r > h) {
+                  this.dead = !this.immortal;
+                }
+                if (this.customUpdate) this.customUpdate();
+              };
+            }
+
+            const beatCircleR = Math.min(w, h)/2*0.8;
+            const beatCircle = new Circle(w/2, h/2, beatCircleR, -beatCircleR*0.3, COLORS.main);
+            beatCircle.immortal = true;
+            beatCircle.wavy = true;
+            circles.push(beatCircle);
+            
+            const fdlen = 256;
+            const maxVal = 255;
+            const pad = 0;
+            const barWidth = (h-pad*2)/fdlen;
+            const rules = [
+              {
+                from: Math.floor(0),
+                to: Math.floor(fdlen*0.2),
+                threshold: Math.floor(maxVal*0.95),
+                action: 'pulselow',
+                cooldown: 20,
+              },
+              {
+                from: Math.floor(fdlen*0.6),
+                to: Math.floor(fdlen),
+                threshold: Math.floor(maxVal*0.4),
+                action: 'pulsehigh',
+                cooldown: 50,
+              },
+              {
+                from: Math.floor(fdlen*0.8),
+                to: Math.floor(fdlen),
+                threshold: Math.floor(maxVal*0.01),
+                action: 'tinkle',
+                cooldown: 50,
+              },
+            ];
+
+            function executeRule(r) {
+              let total;
+              r.t = r.t || 0;
+              r.t++;
+              r.lastHit = t;
+
+              switch (r.action) {
+                case 'pulselow':
+                  beatCircle.r = Math.min(w,h)/2;
+                  const hit = new Circle(w/2, h/2, beatCircle.r, 2, COLORS.hit);
+                  hit.ac = -0.03;
+                  circles.push(hit);
+                break;
+                case 'pulsehigh':
+                  total = 8;
+                  for (let i = 0; i < total; i++) {
+                    const hi = new Circle(
+                      w/2 + 50*Math.cos(pi2*i/total),
+                      h/2 + 50*Math.sin(pi2*i/total),
+                      beatCircle.r,
+                      2,
+                      COLORS.high
+                    );
+                    hi.ac = -0.03;
+                    hi.ghost = true;
+                    hi.dx = 5*Math.cos(pi2*i/total);
+                    hi.dy = 5*Math.sin(pi2*i/total);
+                    hi.wavy = true;
+                    circles.push(hi);
+                  }
+                break;
+                case 'tinkle':
+                  const tinkle = new Circle(w/2, h/2, beatCircle.r, 2, COLORS.tinkle);
+                  tinkle.ac = -0.005;
+                  tinkle.wavy = true;
+                  tinkle.ghost = true;
+                  circles.push(tinkle);
+                  
+                  total = 16;
+                  for (let i = 0; i < total; i++) {
+                    const hi = new Circle(
+                      w/2,
+                      h/2,
+                      4,
+                      -0.005,
+                      COLORS.tinkle2
+                    );
+                    hi.ac = -0.005;
+                    hi.dx = 10*Math.cos(pi2*i/total);
+                    hi.dy = 10*Math.sin(pi2*i/total); 
+                    hi.wavy = true;
+                    hi.customUpdate = function () {
+                      this.dx += Math.cos(r.t)*0.1;
+                      this.dy += Math.sin(r.t)*0.1;
+                    };
+                    circles.push(hi);
+                  }
+                break;
+              }
+            }
+
+            function update() {
+              t++;
+
+              rules.forEach(r => {
+                if (r.lastHit && r.lastHit + r.cooldown > t) return;
+
+                for (let i = r.from; i < r.to; i++) {
+                  const val = fd[i];
+                  if (val >= r.threshold) {
+                    executeRule(r);
+                    break;
+                  }
+                }
+              });
+
+              for (let i = circles.length - 1; i >= 0; i--) {
+                circles[i].update();
+                if (circles[i].dead) circles.splice(i, 1);
+              }
+            }
+
+            function render() {
+              ctx.clearRect(0, 0, w, h);
+              const points = [];
+
+              // render audio wave
+              const waveCnt = 4;
+              for (let i = 0; i <= fdlen; i++) {
+                const val = fd[i];
+                const waves = [];
+                for (let j = 0; j < waveCnt; j++) {
+                  const mod = j/waveCnt * 0.6;
+                  waves.push(mod + val/maxVal * mod);
+                }
+                points.push({
+                  r: waves,
+                  m: pi/2 + pi*i/fdlen
+                });
+              }
+              
+              // render circles
+              circles.forEach(c => {
+                if (c.wavy) {
+                  // draw waves
+                  for (let j = 0; j < waveCnt; j++) {
+                    let p = points[0];
+                    const r = c.r * p.r[j];
+                    ctx.beginPath();
+                    ctx.moveTo(c.x + r * Math.cos(p.m), c.y + r * Math.sin(p.m));
+
+                    for (let i = 1; i < points.length; i++) {
+                      let p = points[i];
+                      const r = c.r * p.r[j];
+                      ctx.lineTo(c.x + r * Math.cos(p.m), c.y + r * Math.sin(p.m));
+                    }
+                    for (let i = points.length-1; i >=0; i--) {
+                      let p = points[i];
+                      const r = c.r * p.r[j];
+                      ctx.lineTo(c.x - r * Math.cos(p.m), c.y + r * Math.sin(p.m));
+                    }
+                    
+                  }
+                } else {
+                  ctx.beginPath();
+                  ctx.arc(c.x, c.y, c.r, 0, pi2);
+                }
+                ctx[c.ghost ? 'strokeStyle' : 'fillStyle'] = c.color.str();
+                ctx[c.ghost ? 'stroke' : 'fill']();
+              });
+            }
+
+            !function loop () {
+                if (!paused) {
+                  analyser.getByteFrequencyData(fd);
+                  update();
+                  render();
+                }
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
