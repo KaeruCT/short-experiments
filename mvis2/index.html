@@ -70,7 +70,7 @@
               const q = parseQuery(window.location.search);
               audio = document.querySelector('audio');
               audio.crossOrigin = 'anonymous';
-              audio.src = q && q.f ||'../../files/macbt-118.mp3';
+              audio.src = q && q.f ||'../../macbt-118.mp3';
               vid.src = q && q.v ||'./vid.webm';
               const actx = new AudioContext();
               const audioSrc = actx.createMediaElementSource(audio);
