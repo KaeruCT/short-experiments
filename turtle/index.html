@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#333;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            turtle,
+            w, h;
+
+            function resize () {
+                w = q.innerWidth || e.clientWidth || b.clientWidth;
+                h = q.innerHeight || e.clientHeight || b.clientHeight;
+                c.width = w;
+                c.height = h;
+            }
+
+            function mousemove(e) {
+            }
+            function scroll(e) {
+
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            resize();
+
+            !function loop () {
+                var p, i, times, maxtimes = 3;
+
+                //ctx.clearRect(0, 0, w, h);
+
+                // render
+                for (times = 0; times < maxtimes; times++) {
+                    for (i = 0; i < obj.length; i++) {
+                        p = obj[i];
+                        p.update && p.update(t);
+                        ctx.strokeStyle = "#fff";
+                        ctx.beginPath();
+                        ctx.moveTo(p.prev.x, p.prev.y);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+                    }
+                    t++;
+                }
+                anim(loop);
+            }();
+
+            for (let i = 0; i < 2; i += 0.25) {
+                obj.push(new Turtle(w/2, h/2, niceCurls,pi*i));
+            }
+
+            function Turtle(x, y, updateFn, offset) {
+                this.prev = { x: x, y: y };
+                this.x = x || 0;
+                this.y = y || 0;
+                this.dx = 0;
+                this.dy = 0;
+                this.updateFn = updateFn;
+                this.offset = offset;
+            }
+            Turtle.prototype.update = function (t) {
+                var result = this.updateFn(t);
+                var n = this.offset + result[0]; // angle
+                var s = result[1]; // how many px to move
+
+                this.dx = Math.cos(n)*s;
+                this.dy = Math.sin(n)*s;
+
+                this.prev = { x: this.x, y: this.y };
+                this.x += this.dx;
+                this.y += this.dy;
+            };
+
+            function movingCircle(t) {
+                return [
+                    t*pi*0.1,
+                    100 * Math.abs(Math.cos(t))
+                ]
+            }
+
+            function movingSquare(t) {
+                return [
+                    t*pi/2,
+                    100 * Math.abs(Math.cos(t))
+                ]
+            }
+
+            function spiral(t) {
+                return [
+                    Math.log(t)*10,
+                    2
+                ];
+            }
+
+            function niceCurls(t) {
+                return [
+                    t * t * 0.05,
+                    10
+                ];
+            }
+    </script>
+</body>
+</html>
