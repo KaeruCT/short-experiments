@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            canvas= document.getElementById('stage'),
+            ctx = canvas.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            obj = [],
+            w, h, rh, rw;
+
+            w = 256;
+            h = 144;
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
+
+            function resize () {
+                rw = q.innerWidth || e.clientWidth || b.clientWidth;
+                rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+                canvas.width = rw;
+                canvas.height = rh;
+                initObj();
+            }
+
+            function mousemove(e) {
+            }
+            function scroll(e) {
+
+            }
+            q.addEventListener('mousemove', mousemove);
+            q.addEventListener('mousewheel', scroll);
+            q.addEventListener('DOMMouseScroll', scroll);
+            q.addEventListener('resize',resize);
+
+            function color(n) { // n => between 0 and 1
+                var r = Math.floor(n*140),
+                    g = Math.floor(n*230),
+                    b = Math.floor(n*160),
+                    a = 0.3 + n*0.7;
+
+                return 'rgba('+r+','+g+', '+b+','+a+')';
+            }
+
+            resize();
+
+            function initObj() {
+                obj = [];
+                var total = 10;
+                var r = Math.min(w, h) / total;
+                for (var i = 0; i < total; i++) {
+                    for (var j = 0; j < total; j++) {
+                        var pad = r * 1.5;
+                        obj.push({
+                            x: i * (pad + w/total) + (pad * (j % 2)),
+                            y: j * (pad +  h/total),
+                            r: r
+                        });
+                    }
+                }
+            }
+
+            function idx(x, y) {
+                return y * (w * 4) + x * 4;
+            }
+
+            function getColors(data, x, y) {
+                var i = idx(x, y);
+                return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+            }
+            !function loop () {
+                //ctx.clearRect(0, 0, w, h);
+                ctx.fillStyle = '#038';
+                ctx.fillRect(0, 0, w, h);
+
+                // render
+                for (var i = 0; i < obj.length; i++) {
+                    ctx.beginPath();
+                    var p = obj[i];
+                    ctx.arc(p.x, p.y, p.r, 0, pi2);
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = '#55ddaa';
+                    ctx.stroke();
+                }
+
+                // magic
+                var orig = ctx.getImageData(0, 0, w, h).data;
+                var newImg = ctx.createImageData(w, h);
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        var yy = Math.floor(Math.abs(Math.sin((y + t * 2) / 100)) * h) + t * 2;
+                        var c = getColors(orig, x, yy % h);
+                        var ii = idx(x, y);
+                        newImg.data[ii] = c[0];
+                        newImg.data[ii + 1] = c[1];
+                        newImg.data[ii + 2] = c[2];
+                        newImg.data[ii + 3] = c[3];
+                    }
+                }
+                ctx.putImageData(newImg, 0, 0);
+
+                ctx.drawImage(canvas, 0, 0, w, h, 0, 0, rw, rh);
+
+                t++;
+                anim(loop);
+            }();
+    </script>
+</body>
+</html>
