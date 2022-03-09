@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <head>
-    <style>body,html{font-family:sans-serif;color:#aaa;background:#38302B;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
-        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
-        #info{font-size:.9em;padding:10px;}
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#222;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 </head>
 <body>
-    <div id=info></div>
-    <canvas id=stage></canvas>
+    <div id=wrap><canvas id=stage></canvas></div>
     <script>
         var q = window,
             anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
@@ -22,29 +20,33 @@
             pi = Math.PI,
             pi2 = Math.PI*2,
             obj = [],
-            w, h, rh, rw;
+            w = 256, h = 144, rh = h, rw = w;
 
-            w = 256;
-            h = 144;
-
-            ctx.imageSmoothingEnabled = false;
-            ctx.mozImageSmoothingEnabled = false;
-            ctx.webkitImageSmoothingEnabled = false;
-            ctx.msImageSmoothingEnabled = false;
+            function fit(w, h, mw, mh) {
+                var ratio = Math.min(mw / w, mh / h);
+                var rw = w * ratio;
+                var rh = h * ratio;
+                if (rw < w || rh < h) {
+                    rw = w;
+                    rh = h;
+                }
+                return [rw, rh];
+            }
 
             function resize () {
                 rw = q.innerWidth || e.clientWidth || b.clientWidth;
                 rh = q.innerHeight || e.clientHeight || b.clientHeight;
 
-                canvas.width = rw;
-                canvas.height = rh;
+                var d = fit(w, h, rw, rh);
+                canvas.width = d[0];
+                canvas.height = d[1];
+                ctx.imageSmoothingEnabled = false;
                 initObj();
             }
 
             function mousemove(e) {
             }
             function scroll(e) {
-
             }
             q.addEventListener('mousemove', mousemove);
             q.addEventListener('mousewheel', scroll);
@@ -66,12 +68,12 @@
                 obj = [];
                 var total = 10;
                 var r = Math.min(w, h) / total;
-                for (var i = 0; i < total; i++) {
-                    for (var j = 0; j < total; j++) {
+                for (var i = 0; i <= total / 2; i++) {
+                    for (var j = 0; j <= total / 2; j++) {
                         var pad = r * 1.5;
                         obj.push({
                             x: i * (pad + w/total) + (pad * (j % 2)),
-                            y: j * (pad +  h/total),
+                            y: j * (pad + h/total),
                             r: r
                         });
                     }
@@ -86,28 +88,32 @@
                 var i = idx(x, y);
                 return [data[i], data[i + 1], data[i + 2], data[i + 3]];
             }
+
             !function loop () {
-                //ctx.clearRect(0, 0, w, h);
-                ctx.fillStyle = '#038';
+                ctx.fillStyle = '#035';
                 ctx.fillRect(0, 0, w, h);
 
                 // render
                 for (var i = 0; i < obj.length; i++) {
-                    ctx.beginPath();
                     var p = obj[i];
+                    p.r += Math.sin(t / 100) / 10;
+                    
+                    ctx.beginPath();
                     ctx.arc(p.x, p.y, p.r, 0, pi2);
-                    ctx.lineWidth = 4;
-                    ctx.strokeStyle = '#55ddaa';
+                    ctx.lineWidth = 3;
+                    var a = Math.abs(Math.sin(i + (i + obj.length/2) * t / 1000));
+                    ctx.strokeStyle = "rgba(85, 180, 140, " + a + ")";
                     ctx.stroke();
                 }
 
                 // magic
                 var orig = ctx.getImageData(0, 0, w, h).data;
                 var newImg = ctx.createImageData(w, h);
+                var pt = Math.abs(100 + Math.sin(t / 50) * 25);
                 for (var y = 0; y < h; y++) {
+                    var yy = Math.floor(Math.abs(Math.sin((y + pt) / 100)) * h) + t * 2;
                     for (var x = 0; x < w; x++) {
-                        var yy = Math.floor(Math.abs(Math.sin((y + t * 2) / 100)) * h) + t * 2;
-                        var c = getColors(orig, x, yy % h);
+                        var c = getColors(orig, x , yy % h);
                         var ii = idx(x, y);
                         newImg.data[ii] = c[0];
                         newImg.data[ii + 1] = c[1];
@@ -117,6 +123,7 @@
                 }
                 ctx.putImageData(newImg, 0, 0);
 
+                // zoom
                 ctx.drawImage(canvas, 0, 0, w, h, 0, 0, rw, rh);
 
                 t++;
