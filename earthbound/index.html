@@ -40,6 +40,8 @@
                 var d = fit(w, h, rw, rh);
                 canvas.width = d[0];
                 canvas.height = d[1];
+                rw = canvas.width;
+                rh = canvas.height;
                 ctx.imageSmoothingEnabled = false;
                 initObj();
             }
