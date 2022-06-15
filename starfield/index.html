@@ -2,11 +2,12 @@
 <head>
     <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
         #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+        #orig{position: absolute; top: -99999px; left: -99999px;}
     </style>
     <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 </head>
 <body>
-    <div id=wrap><canvas id=stage></canvas></div>
+    <div id=wrap><canvas id=orig></canvas><canvas id=stage></canvas></div>
     <script>
         var q = window,
             anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
@@ -14,14 +15,21 @@
             q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
             e = document.documentElement,
             b = document.getElementsByTagName('body')[0],
-            canvas= document.getElementById('stage'),
-            ctx = canvas.getContext('2d'),
+            orig = document.getElementById('orig'),
+            canvas = document.getElementById('stage'),
+            ctx = orig.getContext('2d'),
+            stageCtx = canvas.getContext('2d'),
             t = 0,
             pi = Math.PI,
             pi2 = Math.PI*2,
+            shouldClear = true,
             obj = [],
             w = 256, h = 144, rh = h, rw = w,
-            c = { x: w/2, y: h/2 };
+            c = { x: w/2, y: h/2 },
+            speed = 0.02;
+
+            orig.width = w;
+            orig.height = h;
 
             function fit(w, h, mw, mh) {
                 var ratio = Math.min(mw / w, mh / h);
@@ -48,6 +56,7 @@
                 rw = canvas.width;
                 rh = canvas.height;
                 ctx.imageSmoothingEnabled = false;
+                stageCtx.imageSmoothingEnabled = false;
             }
 
             function mousemove(e) {
@@ -56,10 +65,14 @@
             }
             function scroll(e) {
             }
+            function onclick() {
+                shouldClear = !shouldClear;
+            }
             canvas.addEventListener('mousemove', mousemove);
             q.addEventListener('mousewheel', scroll);
             q.addEventListener('DOMMouseScroll', scroll);
             q.addEventListener('resize', resize);
+            q.addEventListener('click', onclick)
 
             resize();
 
@@ -77,8 +90,6 @@
             function dist(p1, p2) {
                 return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
             }
-            
-            var speed = 0.02;
 
             initObj();
 
@@ -88,32 +99,35 @@
                 //c.x = origC.x + Math.sin(t * 0.001) * w/4;
                 //c.y = origC.y + Math.cos(t * 0.001) * h/4;
 
-                var maxd = dist({ x: 0, y: 0 }, c);
+                var maxd = dist({ x: 0, y: 0 }, { x: w, y: h }) / 2;
 
-                ctx.fillStyle = '#012';
-                ctx.fillRect(0, 0, w, h);
+                if (shouldClear) {
+                    ctx.fillStyle = '#012';
+                    ctx.fillRect(0, 0, w, h);
+                }
+
                 speed += Math.sin(t) * 0.01;
 
+                // mark center for easy debugging
                 // ctx.fillStyle = '#f00';
                 // ctx.fillRect(c.x, c.y, 1, 1);
 
                 for (var i = 0; i < obj.length; i++) {
                     var p = obj[i];
                     var distance = dist(p, c);
-                    var a = distance / (maxd * 0.6);
+                    var a = distance / maxd;
 
                     ctx.fillStyle = "rgba(255, 255, 255, " + a + ")";
                     ctx.fillRect(p.x, p.y, 1, 1);
 
-                    if (p.y <= 0 || p.y > h) p.y = c.y + randRange(-h/4, h/4);
-                    if (p.x <= 0 || p.x > w) p.x = c.x + randRange(-w/4, w/4);
-
                     p.x -= (c.x - p.x) * speed;
                     p.y -= (c.y - p.y) * speed;
+                    if (p.y <= 0 || p.y > h) p.y = c.y + randRange(-h/4, h/4);
+                    if (p.x <= 0 || p.x > w) p.x = c.x + randRange(-w/4, w/4);
                 }
 
                 // zoom
-                ctx.drawImage(canvas, 0, 0, w, h, 0, 0, rw, rh);
+                stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
 
                 t++;
                 anim(loop);
