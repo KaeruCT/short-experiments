@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+        #orig{position: absolute; top: -99999px; left: -99999px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><canvas id=orig></canvas><canvas id=stage></canvas></div>
+    <script>
+        var NEARNESS = 48;
+        var POB_LIMIT = 40;
+        var INITIAL_OBJS = 12;
+        var INITIAL_OBJS_CREATED = 0;
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            orig = document.getElementById('orig'),
+            canvas = document.getElementById('stage'),
+            ctx = orig.getContext('2d'),
+            stageCtx = canvas.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            shouldClear = true,
+            obj = [],
+            w = 256, h = 144, rh = h, rw = w,
+            c = { x: w/2, y: h/2 };
+
+            orig.width = w;
+            orig.height = h;
+
+        function fit(w, h, mw, mh) {
+            var ratio = Math.min(mw / w, mh / h);
+            var rw = w * ratio;
+            var rh = h * ratio;
+            if (rw < w || rh < h) {
+                rw = w;
+                rh = h * ratio;
+            }
+            return [rw, rh];
+        }
+
+        function color(i) {
+            const colors = ['#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f'];
+            return colors[i % colors.length];
+        }
+
+        function randRange(min, max) {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+
+        function randVal(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function resize () {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+            var d = fit(w, h, rw, rh);
+            canvas.width = d[0];
+            canvas.height = d[1];
+            rw = canvas.width;
+            rh = canvas.height;
+            ctx.imageSmoothingEnabled = false;
+            stageCtx.imageSmoothingEnabled = false;
+        }
+
+        function mousemove(e) {
+        }
+        function scroll(e) {
+        }
+        function onclick() {
+            shouldClear = !shouldClear;
+        }
+        canvas.addEventListener('mousemove', mousemove);
+        q.addEventListener('mousewheel', scroll);
+        q.addEventListener('DOMMouseScroll', scroll);
+        q.addEventListener('resize', resize);
+        q.addEventListener('click', onclick)
+
+        resize();
+
+        function createObj(obj) {
+            return {
+                dx: 0,
+                dy: 0,
+                x: randRange(0, w),
+                y: randRange(0, h),
+                r: 1,
+                target: undefined,
+                dead: false,
+                gene: INITIAL_OBJS_CREATED,
+                escaping: false,
+                speed: 0.1,
+                ...obj
+            };
+        }
+
+        function removeIdx(arr, i) {
+            arr.splice(i, 1);
+        }
+
+        function remove(arr, el) {
+            arr.splice(arr.indexOf(el), 1);
+        }
+
+        function angle(p1, p2) {
+            return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        }
+
+        function neighbors(p1, filter) {
+            return obj.filter(p2 => p2 !== p1 && filter(p2) && dist(p1, p2) <= NEARNESS);
+        }
+
+        function dist(p1, p2) {
+            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        }
+
+        function directTo(p1, p2, reverse) {
+            var a = angle(p1, p2);
+            a += Math.PI/8*(Math.random()-Math.random());
+            var m = reverse ? -1 : 1;
+            p1.dx = m * Math.cos(a) * p1.speed;
+            p1.dy = m * Math.sin(a) * p1.speed;
+        }
+
+        function collides(p1, p2) {
+			return Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p2.y, 2) < Math.pow(p1.r + p2.r, 2);
+        }
+
+        function kill(p) {
+            p.dead = true;
+        }
+
+        function update(p, toAdd) {
+            if (p.dead) {
+                return;
+            }
+
+            if (!p.target || p.target.dead) {
+                p.target = randVal(neighbors(p, q => q.gene !== p.gene));
+                if (p.target) {
+                    p.target.escaping = true;
+                    p.target.target = p;
+                }
+            } else {
+                directTo(p, p.target, p.escaping);
+
+                if (collides(p, p.target)) {
+                    if (p.target.r > p.r) {
+                        kill(p);
+                        p.target.escaping = false;
+                        return;
+                    }
+
+                    kill(p.target);
+                    p.escaping = false;
+                    
+                    p.r += p.target.r;
+                    p.speed = 0.1;
+                    p.dx = 0;
+                    p.dy = 0;
+                }
+            }
+
+            p.x += p.dx;
+            p.y += p.dy;
+
+            if (p.y <= p.r) {
+                p.y = p.r;
+                p.dy = -p.dy/2;
+            }
+            if (p.y > h - p.r) {
+                p.y = h - p.r;
+                p.dy = -p.dy/2;
+            }
+            if (p.x <= p.r) {
+                p.x = p.r;
+                p.dx = -p.dx/2;
+            }
+            if (p.x > w - p.r) {
+                p.x = w - p.r;
+                p.dx = -p.dx/2;
+            }
+
+            p.r += 0.01;
+            
+            var total = obj.filter(q => p.gene === q.gene).length;
+            if (p.r >= 2) {
+                if (total < POB_LIMIT) {
+                    kill(p);
+                    var a = pi2 * Math.random();
+                    var count = 4;
+                    for (var i = 0; i < count && total + i < POB_LIMIT; i++) {
+                        const dx = Math.cos(a + pi2*i/count) * p.speed;
+                        const dy = Math.sin(a + pi2*i/count) * p.speed;
+                        toAdd.push(createObj({
+                            dx: 0,
+                            dy: 0,
+                            x: p.x,
+                            y: p.y,
+                            gene: p.gene,
+                            speed: p.speed,
+                            r: Math.random()
+                        }));
+                    }
+                } else {
+                    p.r = Math.random();
+                    p.speed += 0.1;
+                }
+            }
+        }
+
+        !function loop () {
+            ctx.fillStyle = '#012';
+            ctx.fillRect(0, 0, w, h);
+
+            var toRemove = [];
+            var toAdd = [];
+
+            if (t % 10 === 0 && INITIAL_OBJS_CREATED < INITIAL_OBJS) {
+                toAdd.push(createObj());
+                INITIAL_OBJS_CREATED += 1;
+            }
+
+            for (var i = 0; i < obj.length; i++) {
+                var p = obj[i];
+
+                ctx.fillStyle = color(p.gene);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, pi2);
+                ctx.fill();
+
+                update(p, toAdd);
+                if (p.dead) {
+                    toRemove.push(i);
+                }
+            }
+            toRemove.forEach(i => removeIdx(obj, i));
+            toAdd.forEach(p => obj.push(p));
+
+            // zoom
+            stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
+
+            t++;
+            anim(loop);
+        }();
+    </script>
+</body>
+</html>
