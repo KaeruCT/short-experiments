@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+        #orig{position: absolute; top: -99999px; left: -99999px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><canvas id=orig></canvas><canvas id=stage></canvas></div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            orig = document.getElementById('orig'),
+            canvas = document.getElementById('stage'),
+            ctx = orig.getContext('2d'),
+            stageCtx = canvas.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            shouldClear = true,
+            obj = [],
+            w = 256, h = 144, rh = h, rw = w,
+            c = { x: w/2, y: h/2 };
+
+            orig.width = w;
+            orig.height = h;
+
+        function fit(w, h, mw, mh) {
+            var ratio = Math.min(mw / w, mh / h);
+            var rw = w * ratio;
+            var rh = h * ratio;
+            if (rw < w || rh < h) {
+                rw = w;
+                rh = h * ratio;
+            }
+            return [rw, rh];
+        }
+
+        function color(i, a) {
+            const color = COLORS[i % COLORS.length];
+            return "rgba("+color.r+","+color.g+","+color.b+","+a+")";
+        }
+
+        function randRange(min, max) {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+
+        function randVal(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function resize () {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+            var d = fit(w, h, rw, rh);
+            canvas.width = d[0];
+            canvas.height = d[1];
+            rw = canvas.width;
+            rh = canvas.height;
+            ctx.imageSmoothingEnabled = false;
+            stageCtx.imageSmoothingEnabled = false;
+        }
+
+        function mousemove(e) {
+        }
+        function scroll(e) {
+        }
+        function onclick() {
+            shouldClear = !shouldClear;
+        }
+        canvas.addEventListener('mousemove', mousemove);
+        q.addEventListener('mousewheel', scroll);
+        q.addEventListener('DOMMouseScroll', scroll);
+        q.addEventListener('resize', resize);
+        q.addEventListener('click', onclick)
+
+        resize();
+
+        function removeIdx(arr, i) {
+            arr.splice(i, 1);
+        }
+
+        function remove(arr, el) {
+            arr.splice(arr.indexOf(el), 1);
+        }
+
+        function angle(p1, p2) {
+            return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        }
+
+        function dist(p1, p2) {
+            return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        }
+
+        function collides(p1, p2) {
+			return Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p2.y, 2) < Math.pow(p1.r + p2.r, 2);
+        }
+
+        function initLines() {
+            var total = 6;
+            for (var i = 0; i < total; i++) {
+                obj.push({ a: pi2 * i / total });
+            }
+        }
+
+        function update(line) {
+            line.a += 0.01;
+        }
+
+        initLines();
+
+        !function loop () {
+            if (shouldClear) {
+                ctx.fillStyle = '#102';
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            var w2 = w/2 + Math.cos(t * 0.01) * 5;
+            var h2 = h/2 + Math.sin(t * 0.01) * 5;
+
+            for (var i = 0; i < obj.length; i++) {
+                var line = obj[i];
+                var x = Math.cos(line.a) * w;
+                var y = Math.sin(line.a) * h;
+
+                var x1 = w2 + x// * Math.cos(t * 0.01);
+                var x2 = w2 - x// * Math.cos(t * 0.01);
+                var y1 = h2 + y// * Math.sin(t * 0.01);
+                var y2 = h2 - y// * Math.sin(t * 0.01);
+
+                ctx.beginPath();
+                ctx.strokeStyle = "#ead";
+                ctx.lineWidth = 1;
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                update(line);
+            }
+
+            // zoom
+            stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
+
+            t++;
+            anim(loop);
+        }();
+    </script>
+</body>
+</html>
