@@ -182,6 +182,9 @@
                 if (p.target) {
                     p.target.escaping = true;
                     p.target.target = p;
+                } else if (p.dy === 0 && p.dx === 0) {
+                    p.dx = Math.cos(Math.random()*pi2);
+                    p.dy = Math.sin(Math.random()*pi2);
                 }
             } else {
                 directTo(p, p.target, p.escaping);
@@ -285,8 +288,14 @@
                     toRemove.push(i);
                 }
             }
-            toRemove.forEach(i => removeIdx(obj, i));
-            toAdd.forEach(p => obj.push(p));
+            toRemove.forEach(i => {
+                console.log("death", obj[i]);
+                removeIdx(obj, i)
+            });
+            toAdd.forEach(p => {
+                console.log("genesis", p);
+                obj.push(p);
+            });
 
             // zoom
             stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
