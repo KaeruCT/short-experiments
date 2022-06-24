@@ -111,7 +111,13 @@
             for (var i = 0; i < total; i++) {
                 var x = i%w;
                 var y = Math.floor(i/w);
-                var offset = y % size > s2 ? 0 : s2;
+                var offset;
+                if (shouldClear) {
+                    offset = y % size > s2 ? Math.cos(t * 0.1) * s2 : -Math.cos(t * 0.1) * s2;
+                } else {
+                    offset = y % size > s2 ? 0 : s2;
+                }
+
                 var draw = (x + offset) % size > s2;
                 if (draw) {
                     ctx.fillStyle = '#000';
