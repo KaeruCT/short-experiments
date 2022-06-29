@@ -22,10 +22,11 @@
             t = 0,
             pi = Math.PI,
             pi2 = Math.PI*2,
-            shouldClear = true,
+            pathReset = false,
             w = 256, h = 256,
             rh = h, rw = w,
-            c = { x: w/2, y: h/2 };
+            c = { x: w/2, y: h/2 },
+            path = [];
 
             orig.width = w;
             orig.height = h;
@@ -68,11 +69,18 @@
         }
 
         function mousemove(e) {
+            c.x = (e.clientX - e.currentTarget.offsetLeft)/rw*w;
+            c.y = (e.clientY - e.currentTarget.offsetTop)/rh*h;
         }
         function scroll(e) {
         }
-        function onclick() {
-            shouldClear = !shouldClear;
+        function onclick(e) {
+            if (!pathReset) {
+                pathReset = true;
+                path = [];
+            }
+
+            addPoint(c.x, c.y);
         }
         canvas.addEventListener('mousemove', mousemove);
         q.addEventListener('mousewheel', scroll);
@@ -99,19 +107,21 @@
             return [data[i], data[i + 1], data[i + 2], data[i + 3]];
         }
 
-        //var path = [[4, 4], [30, 4], [30, 40], [8, 37]];
-        var path = [];
+        function addPoint(x, y) {
+            if (x <= 0) x = mind;
+            if (x >= w) x = w - mind;
+            if (y <= 0) y = mind;
+            if (y >= h) y = h - mind;
+            path.push([x, y]);
+        }
+
         var mind = 10, maxd = 50;
         var current = [randRange(mind, maxd), randRange(mind, maxd)];
         for (let i = 0; i < 10; i++) {
             var sx = randVal([1, -1]);
             var sy = randVal([1, -1]);
             current = [current[0] + sx * randRange(mind, maxd), current[1] + sy * randRange(mind, maxd)];
-            if (current[0] <= 0) current[0] = mind;
-            if (current[0] >= w) current[0] = w - mind;
-            if (current[1] <= 0) current[1] = mind;
-            if (current[1] >= h) current[1] = h - mind;
-            path.push(current);
+            addPoint(current[0], current[1]);
         }
         var duration = 20;
         
