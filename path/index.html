@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+        #orig{position: absolute; top: -99999px; left: -99999px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><canvas id=orig></canvas><canvas id=stage></canvas></div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            orig = document.getElementById('orig'),
+            canvas = document.getElementById('stage'),
+            ctx = orig.getContext('2d'),
+            stageCtx = canvas.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            shouldClear = true,
+            w = 256, h = 256,
+            rh = h, rw = w,
+            c = { x: w/2, y: h/2 };
+
+            orig.width = w;
+            orig.height = h;
+
+        function fit(w, h, mw, mh) {
+            var ratio = Math.min(mw / w, mh / h);
+            var rw = w * ratio;
+            var rh = h * ratio;
+            if (rw < w || rh < h) {
+                rw = w;
+                rh = h * ratio;
+            }
+            return [rw, rh];
+        }
+
+        function color(i, a) {
+            const color = COLORS[i % COLORS.length];
+            return "rgba("+color.r+","+color.g+","+color.b+","+a+")";
+        }
+
+        function randRange(min, max) {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+
+        function randVal(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function resize () {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+            var d = fit(w, h, rw, rh);
+            canvas.width = d[0];
+            canvas.height = d[1];
+            rw = canvas.width;
+            rh = canvas.height;
+            ctx.imageSmoothingEnabled = false;
+            stageCtx.imageSmoothingEnabled = false;
+        }
+
+        function mousemove(e) {
+        }
+        function scroll(e) {
+        }
+        function onclick() {
+            shouldClear = !shouldClear;
+        }
+        canvas.addEventListener('mousemove', mousemove);
+        q.addEventListener('mousewheel', scroll);
+        q.addEventListener('DOMMouseScroll', scroll);
+        q.addEventListener('resize', resize);
+        q.addEventListener('click', onclick)
+
+        resize();
+
+        function removeIdx(arr, i) {
+            arr.splice(i, 1);
+        }
+
+        function remove(arr, el) {
+            arr.splice(arr.indexOf(el), 1);
+        }
+
+        function idx(x, y) {
+            return y * (w * 4) + x * 4;
+        }
+
+        function getColors(data, x, y) {
+            var i = idx(x, y);
+            return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        }
+
+        //var path = [[4, 4], [30, 4], [30, 40], [8, 37]];
+        var path = [];
+        var mind = 10, maxd = 50;
+        var current = [randRange(mind, maxd), randRange(mind, maxd)];
+        for (let i = 0; i < 10; i++) {
+            var sx = randVal([1, -1]);
+            var sy = randVal([1, -1]);
+            current = [current[0] + sx * randRange(mind, maxd), current[1] + sy * randRange(mind, maxd)];
+            if (current[0] <= 0) current[0] = mind;
+            if (current[0] >= w) current[0] = w - mind;
+            if (current[1] <= 0) current[1] = mind;
+            if (current[1] >= h) current[1] = h - mind;
+            path.push(current);
+        }
+        var duration = 20;
+        
+        !function loop () {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 0.5;
+
+            const curpath = Math.floor(t/duration) % path.length;
+
+            for (var i = 0; i < path.length; i++) {
+                var p = path[i];
+                var pn = path[(i + 1) % path.length];
+                ctx.beginPath();
+                ctx.moveTo(p[0], p[1]);
+                ctx.lineTo(pn[0], pn[1]);
+                ctx.stroke();
+
+                // draw walking dot
+                if (curpath === i) {
+                    var xd = p[0] - pn[0];
+                    var yd = p[1] - pn[1];
+                    var x = p[0] - xd * (t % duration)/duration;
+                    var y = p[1] - yd * (t % duration)/duration;
+
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(x - 1, y - 1, 2, 2);
+                }
+            }
+
+            // zoom
+            stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
+
+            t++;
+            anim(loop);
+        }();
+    </script>
+</body>
+</html>
