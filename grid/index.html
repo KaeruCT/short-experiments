@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+        #orig{position: absolute; top: -99999px; left: -99999px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><canvas id=orig></canvas><canvas id=stage></canvas></div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            orig = document.getElementById('orig'),
+            canvas = document.getElementById('stage'),
+            ctx = orig.getContext('2d'),
+            stageCtx = canvas.getContext('2d'),
+            t = 600,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            shouldClear = true,
+            w = 64, h = 64,
+            rh = h, rw = w,
+            c = { x: w/2, y: h/2 };
+
+            orig.width = w;
+            orig.height = h;
+
+        function fit(w, h, mw, mh) {
+            var ratio = Math.min(mw / w, mh / h);
+            var rw = w * ratio;
+            var rh = h * ratio;
+            if (rw < w || rh < h) {
+                rw = w;
+                rh = h * ratio;
+            }
+            return [rw, rh];
+        }
+
+        function color(i, a) {
+            const color = COLORS[i % COLORS.length];
+            return "rgba("+color.r+","+color.g+","+color.b+","+a+")";
+        }
+
+        function randRange(min, max) {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+
+        function randVal(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function resize () {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+            var d = fit(w, h, rw, rh);
+            canvas.width = d[0];
+            canvas.height = d[1];
+            rw = canvas.width;
+            rh = canvas.height;
+            ctx.imageSmoothingEnabled = false;
+            stageCtx.imageSmoothingEnabled = false;
+        }
+
+        function mousemove(e) {
+        }
+        function scroll(e) {
+        }
+        function onclick() {
+            shouldClear = !shouldClear;
+        }
+        canvas.addEventListener('mousemove', mousemove);
+        q.addEventListener('mousewheel', scroll);
+        q.addEventListener('DOMMouseScroll', scroll);
+        q.addEventListener('resize', resize);
+        q.addEventListener('click', onclick)
+
+        resize();
+
+        function removeIdx(arr, i) {
+            arr.splice(i, 1);
+        }
+
+        function remove(arr, el) {
+            arr.splice(arr.indexOf(el), 1);
+        }
+
+        function idx(x, y) {
+            return y * (w * 4) + x * 4;
+        }
+
+        function getColors(data, x, y) {
+            var i = idx(x, y);
+            return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        }
+        
+        !function loop () {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, w, h);
+
+            var size = h/6;
+            var s2 = size/2;
+            var total = w*h;
+            for (var i = 0; i < total; i++) {
+                var x = i%w;
+                var y = Math.floor(i/w);
+
+                var drawa = Math.sin((t + total - i) * 0.1) * 1.2 > Math.sin(t * 0.01);
+                var drawb = (1 + Math.sin(t * i * 0.0001)) * w * 1.5 > (1 + Math.sin(t * 0.001)) * w;
+
+                if (drawa || drawb) {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(x, y, 1, 1);
+                }
+            }
+
+            // zoom
+            stageCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
+
+            t++;
+            anim(loop);
+        }();
+    </script>
+</body>
+</html>
