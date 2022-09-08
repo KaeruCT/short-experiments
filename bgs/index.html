@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+        #container{display:flex;flex-wrap:wrap;margin:0 auto;}
+        .u{box-sizing:border-box;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id="container"></div>
+    <script>
+        var q = window, d = document, w, h, u = 100,
+            container = d.querySelector("#container");
+
+        function resize () {
+            w = q.innerWidth || e.clientWidth || b.clientWidth;
+            h = q.innerHeight || e.clientHeight || b.clientHeight;
+            generate();
+        }
+        q.addEventListener('resize',resize);
+        q.addEventListener('click', generate);
+        resize();
+
+        function cpart(i) {
+            return i;
+        }
+        function color(i) {
+            var r = Math.min(20, (i * Math.random() * 20) * 255) % 255 + randRange(50, 200);
+            var g = Math.min(20, (i * Math.random() * 20) * 255) % 255 + randRange(50, 200);
+            var b = Math.min(20, (i * Math.random() * 20) * 255) % 255 + randRange(50, 200);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        function radius(i) {
+            const vals = ["5px", "50%"];
+            return [randVal(vals), randVal(vals), randVal(vals), randVal(vals)].join(' ');
+        }
+        function transform(i) {
+            if (i % 5 !== 0) return "";
+            const vals = ["5deg", "-5deg"];
+            return `rotate(${randVal(vals)})`;
+        }
+        function randRange(min, max) {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+        function randVal(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function generate() {
+            var bg = 'transparent';
+            var amount = Math.ceil(w * h / (u * u)) + 5;
+            var cw = w - (w % u);
+            var common = `width: ${u}px; height: ${u}px; padding: ${randRange(5, 15)}px;`;
+
+            var c = '';
+
+            for (var i = 0; i < amount; i++) {
+                var style = `background: ${color(i)}; border-radius: ${radius(i)}; transform: ${transform(i)}; width: 100%; height: 100%;`;
+                c += `<div class="u" style="${common}"><div style="${style}"></div></div>`;
+            }
+            container.innerHTML = c;
+            container.style.width = `${cw}px`;
+        }
+        generate();
+    </script>
+</body>
+</html>
