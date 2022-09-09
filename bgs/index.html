@@ -36,11 +36,6 @@
             const vals = ["5px", "50%"];
             return [randVal(vals), randVal(vals), randVal(vals), randVal(vals)].join(' ');
         }
-        function transform(i) {
-            if (i % 5 !== 0) return "";
-            const vals = ["5deg", "-5deg"];
-            return `rotate(${randVal(vals)})`;
-        }
         function randRange(min, max) {
             return Math.floor(Math.random()*(max-min+1)+min);
         }
@@ -52,12 +47,18 @@
             var bg = 'transparent';
             var amount = Math.ceil(w * h / (u * u)) + 5;
             var cw = w - (w % u);
-            var common = `width: ${u}px; height: ${u}px; padding: ${randRange(5, 15)}px;`;
+            var common = `width: ${u}px; height: ${u}px; padding: ${randRange(5, 10)}px;`;
+            var bw =  randRange(5, 10);
+            var commonColored = randVal([
+                "width: 100%; height: 100%; background",
+                `width: calc(100% - ${bw * 2}px); height: calc(100% - ${bw * 2}px); border-style: solid; border-width: ${bw}px; border-color`
+            ]);
 
             var c = '';
 
             for (var i = 0; i < amount; i++) {
-                var style = `background: ${color(i)}; border-radius: ${radius(i)}; transform: ${transform(i)}; width: 100%; height: 100%;`;
+                var colored = `${commonColored}: ${color(i)};`;
+                var style = `${colored} border-radius: ${radius(i)};`;
                 c += `<div class="u" style="${common}"><div style="${style}"></div></div>`;
             }
             container.innerHTML = c;
