@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#222;margin:0;padding:0;height: 100%;}
+        #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><canvas id=stage></canvas></div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            canvas= document.getElementById('stage'),
+            ctx = canvas.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI*2,
+            grid = [],
+            cx = 0, cy = 0,
+            pressing = false,
+            w = 64, h = 64, rh = h, rw = w;
+
+            // init
+            for (var y = 0; y < h; y++) {
+                grid[y] = [];
+                for (var x = 0; x < w; x++) {
+                    grid[y][x] = 0;
+                }
+            }
+            
+            // glider
+            grid[0][1] = 1;
+            grid[1][2] = 1;
+            grid[2][0] = 1;
+            grid[2][1] = 1;
+            grid[2][2] = 1;
+
+            function fit(w, h, mw, mh) {
+                var ratio = Math.min(mw / w, mh / h);
+                var rw = w * ratio;
+                var rh = h * ratio;
+                if (rw < w || rh < h) {
+                    rw = w;
+                    rh = h;
+                }
+                return [rw, rh];
+            }
+
+            function resize () {
+                rw = q.innerWidth || e.clientWidth || b.clientWidth;
+                rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+                var d = fit(w, h, rw, rh);
+                canvas.width = d[0];
+                canvas.height = d[1];
+                rw = canvas.width;
+                rh = canvas.height;
+                ctx.imageSmoothingEnabled = false;
+            }
+
+            function mousemove(e) {
+                cx = Math.floor((e.clientX - e.currentTarget.offsetLeft)/rw*w);
+                cy = Math.floor((e.clientY - e.currentTarget.offsetTop)/rh*h);
+                if (pressing) {
+                    grid[cy][cx] = 1;
+                }
+            }
+
+            function mousedown() {
+                pressing = true;
+            }
+            function mouseup() {
+                pressing = false;
+            }
+
+            canvas.addEventListener('mousemove', mousemove);
+            q.addEventListener('resize', resize);
+            q.addEventListener('mousedown', mousedown);
+            q.addEventListener('mouseup', mouseup);
+
+            function neighborCoords(y, x) {
+                var result = [];
+                var coords = [
+                    [-1, -1],
+                    [-1, 0],
+                    [-1, 1],
+                    [0, -1],
+                    [0, 1],
+                    [1, -1],
+                    [1, 0],
+                    [1, 1],
+                ];
+                for (var i = 0; i < coords.length; i++) {
+                    var oy = y + coords[i][0];
+                    var ox = x + coords[i][1];
+                    var row = grid[oy];
+                    if (row !== undefined && row[ox] !== undefined) {
+                        result.push([oy, ox]);
+                    }
+                }
+                return result;
+            }
+            
+            function neighborCount(y, x) {
+                var cnt = 0;
+                var c = neighborCoords(y, x);
+                for (var i = 0; i < c.length; i++) {
+                    if (grid[c[i][0]][c[i][1]] === 1) {
+                        cnt += 1;
+                    }
+                }
+                return cnt;
+            }
+
+            resize();
+
+            !function loop () {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, w, h);
+
+                // render
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        var alive = grid[y][x];
+                        if (alive) {
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(x, y, 1, 1);
+                        }
+                    }
+                }
+
+                // render neighbors
+                var neighbors = neighborCoords(cy, cx);
+                ctx.fillStyle = 'rgba(160, 0, 200, 0.5)';
+                for (var i = 0; i < neighbors.length; i++) {
+                    ctx.fillRect(neighbors[i][1], neighbors[i][0], 1, 1);
+                }
+
+                // zoom
+                ctx.drawImage(canvas, 0, 0, w, h, 0, 0, rw, rh);
+
+                t++;
+                anim(loop);
+            }();
+
+            // update
+            !function update() {
+                var updates = [];
+                for (var y = 0; y < h; y++) {
+                    for (var x = 0; x < w; x++) {
+                        var alive = grid[y][x];
+                        var n = neighborCount(y, x);
+                        if (alive) {
+                            if (n !== 2 && n !== 3) {
+                                updates.push([y, x, 0]);
+                            }
+                        } else if (n === 3) {
+                            updates.push([y, x, 1]);
+                        }
+                    }
+                }
+                for (var i = 0; i < updates.length; i++) {
+                    var u = updates[i];
+                    grid[u[0]][u[1]] = u[2];
+                }
+                setTimeout(update, 100);
+            }();
+    </script>
+</body>
+</html>
