@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Robot Vacuum Game</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #f8f8f8;
+      }
+
+      #game-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      #game {
+        border: 2px solid #333;
+        border-radius: 4px;
+        background-color: #fff;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
+        padding: 20px;
+      }
+
+      #game canvas {
+        border: 2px solid #333;
+        margin: 20px;
+      }
+
+      #game h1 {
+        font-size: 32px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      #game p {
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      #game button {
+        font-size: 24px;
+        border: none;
+        background-color: #333;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      #game button:hover {
+        background-color: #444;
+      }
+
+      #game button:active {
+        background-color: #222;
+      }
+    </style>
+  </head>
+  <body id="game-container">
+    <div id="game">
+      <h2 id="timer">Time left: 30s</h2>
+      <canvas id="canvas"></canvas>
+      <button id="restart" style="display: none">Play Again</button>
+    </div>
+    <script src="game.js"></script>
+  </body>
+</html>

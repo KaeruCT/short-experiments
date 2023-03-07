@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tribe Game</title>
+  </head>
+  <body>
+    <h1>Tribe Members</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Member Name</th>
+          <th>Hunting</th>
+          <th>Fishing</th>
+          <th>Gathering</th>
+        </tr>
+      </thead>
+      <tbody id="member-table">
+      </tbody>
+    </table>
+    <h2>Happiness Level: <span id="happiness"></span></h2>
+    <h2>Skill Points: <span id="skill-points"></span></h2>
+    <button onclick="increaseSkill('Hunting', 0)">Increase Hunting Skill</button>
+    <button onclick="increaseSkill('Fishing', 0)">Increase Fishing Skill</button>
+    <button onclick="increaseSkill('Gathering', 0)">Increase Gathering Skill</button>
+
+    <script>
+      // Define some initial data
+      const members = [
+        { name: "John", skills: { Hunting: 1, Fishing: 1, Gathering: 1 } },
+        { name: "Mary", skills: { Hunting: 1, Fishing: 1, Gathering: 1 } },
+        { name: "Tom", skills: { Hunting: 1, Fishing: 1, Gathering: 1 } }
+      ];
+
+      let skillPoints = 0;
+      let happiness = 0;
+
+      // Define a function to render the members table
+      function renderMembers() {
+        const memberTable = document.getElementById("member-table");
+        memberTable.innerHTML = "";
+        members.forEach(member => {
+          const row = document.createElement("tr");
+          const nameCell = document.createElement("td");
+          const huntingCell = document.createElement("td");
+          const fishingCell = document.createElement("td");
+          const gatheringCell = document.createElement("td");
+          nameCell.textContent = member.name;
+          huntingCell.textContent = member.skills.Hunting;
+          fishingCell.textContent = member.skills.Fishing;
+          gatheringCell.textContent = member.skills.Gathering;
+          row.appendChild(nameCell);
+          row.appendChild(huntingCell);
+          row.appendChild(fishingCell);
+          row.appendChild(gatheringCell);
+          memberTable.appendChild(row);
+        });
+      }
+
+      // Define a function to render the skill points
+      function renderSkillPoints() {
+        const skillPointsSpan = document.getElementById("skill-points");
+        skillPointsSpan.textContent = skillPoints;
+        const happinessSpan = document.getElementById("happiness");
+        happinessSpan.textContent = happiness;
+        if (happiness >= 20) {
+          skillPoints += 1;
+          renderSkillPoints();
+        }
+      }
+
+      // Define a function to increase a member's skill level
+      function increaseSkill(skill, memberIndex) {
+        const member = members[memberIndex];
+        const currentSkillLevel = member.skills[skill];
+        if (skillPoints >= 1 && currentSkillLevel < 5) {
+          member.skills[skill] = currentSkillLevel + 1;
+          skillPoints -= 1;
+          happiness += 5;
+          renderMembers();
+          renderSkillPoints();
+        }
+      }
+
+      // Define a function to increase the skill points every 10 seconds
+      function increaseSkillPoints() {
+        setInterval(() => {
+          skillPoints += 1;
+          const randomValue = Math.floor(Math.random() * 3) - 1;
+          happiness += randomValue;
+          renderSkillPoints();
+        }, 10000);
+      }
+
+      // Call the render functions to initialize the UI
+      renderMembers();
+      renderSkillPoints();
+
+      // Start the interval to increase skill points
+      increaseSkillPoints();
+    </script>
+  </body>
+</html>

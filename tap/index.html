@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<head>
+    <style>
+    *{box-sizing:border-box;}
+        body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+        #wrap{display:flex;width:100%;height:100%;align-items:center;justify-content:center;position: absolute;}
+        #main > div {border: #0af 4px solid; position: absolute; transform: translate(-50%, -50%);}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=wrap><div id=main></div></div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            rw = 0,
+            rh = 0,
+            state = 0,
+            modifier = 1,
+            current = 0,
+            cnt = 10;
+
+        var htmlStr = "";
+        for (let i = 0; i < cnt; i++) {
+            htmlStr += "<div></div>";
+        }
+        q.document.querySelector("#main").innerHTML = htmlStr;
+        var divs = q.document.querySelectorAll("#main > div");
+
+        function resize () {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+        }
+
+        q.addEventListener("mousedown", act);
+        q.addEventListener("keydown", act);
+        q.addEventListener('resize', resize);
+        resize();
+
+        function style(el, state) {
+            var height = Math.abs(Math.sin(state / 100)) * rh;
+            var width = Math.abs(Math.cos(state / 100)) * rw;
+
+            el.style.height = height + "px";
+            el.style.width = width + "px";
+        }
+
+        function act() {
+            modifier += 1;
+        }
+
+        function loop() {
+            state += modifier;
+            current = Math.floor(Math.abs(state) / 50);
+            var div = divs[current % divs.length];
+            style(div, state);
+            anim(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>

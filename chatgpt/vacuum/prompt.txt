@@ -1,0 +1,22 @@
+please write the necessary html and javascript code to implement this game:
+
+the player controls a robot vacuum. the objective is to clean the floor before time runs out.
+the player has 60 seconds to clean the floor completely.
+there is a timer on the top left of the screen displaying how much time is left, for example: "Time left: 16.3s". Render the timer within an HTML element.
+the floor is represented by a 2d array of 8x8 and rendered on the screen using html canvas.
+each tile should be rendered as a  16x16px square.
+ensure the html canvas size is big enough to fit all the rendered squares.
+
+the floor is white, the vacuum is rendered as a blue circle and light blue circle inside.
+random positions within the floor will contain dust (called dust value), represented by an integer from 0 to 3. 0 means it is clean, 3 means it is filthy.
+this value also affects the color of the tile. the dirtier it is, the darker it will appear.
+the player controls the vacuum by pressing the arrows keys.
+the player can reduce the dust value by moving the vacuum to the correct position in the world.
+
+once the dust value is 0 for all the tiles, the game is over, the player has won.
+if the time runs out, the game is over, the player has lost.
+when the game is over, show a button that the player can click to play again.
+
+make it so the vacuum can only move once per 250milliseconds
+
+instead of squares for the tiles, render each tile as random pixels so it looks more like dust
