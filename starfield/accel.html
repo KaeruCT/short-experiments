@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<head>
+  <style>
+    body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height: 100%;}
+    #wrap{display: flex; height: 100%; align-items: center; justify-content: center;}
+    #orig{position: absolute; top: -99999px; left: -99999px;}
+    #debug{position: absolute;}
+  </style>
+  <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+  <div id=debug></div>
+  <div id=wrap>
+    <canvas id=orig></canvas> <!-- This is the canvas element that the animation is rendered on. It is hidden from view. -->
+    <canvas id=scaled></canvas> <!-- This is the displayed canvas element. We will scale and copy the contents from the orig scaled. -->
+  </div>
+  <script>
+    const $ = window // Shortcut to reference the global window object
+      e = document.documentElement, // Shortcut to reference the root element (html)
+      b = document.getElementsByTagName('body')[0], // Shortcut to reference the body element
+      orig = document.getElementById('orig'), // Shortcut for the original canvas element
+      scaled = document.getElementById('scaled'), // Shortcut for the scale canvas element
+      ctx = orig.getContext('2d'), // Shortcut for the original canvas 2d context
+      scaledCtx = scaled.getContext('2d'), // Shortcut for the scaled canvas 2d context
+      particles = [], // Array to hold the particle objects
+      c = { x: 0, y: 0 }; // Object to hold the current position of the cursor
+
+    const debug = window.location.hash.includes("debug"); // Whether debug is enabled
+
+    let shouldClear = true, // Whether the canvas should be cleared each frame
+      w = 0, // Width of the orig canvas
+      h = 0, // Height of the orig canvas
+      maxd = 0, // Maximum distance from the center of the canvas -- at this distance, the alpha value of the particle will be 1. Particles will be more transparent, the closer they are to the center.
+      speed = 0, // Speed of the particles
+      t = 0; // Time variable, will increase each frame
+
+    /**
+     * Utility function to clamp a value between a minimum and maximum value.
+     * This means that the value will always be within the range of min and max.
+     */
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    /**
+     * Calculates the distance between two points.
+     */
+    function dist(p1, p2) {
+      return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    }
+
+    /**
+     * Scales the width and height of the canvas to fit within the maximum width and height.
+     * The aspect ratio is maintained.
+     */
+    function fit(w, h, mw, mh) {
+      const ratio = Math.min(mw / w, mh / h);
+      const rw = w * ratio;
+      const rh = h * ratio;
+      if (rw < w || rh < h) {
+        rw = w;
+        rh = h * ratio;
+      }
+      return [rw, rh];
+    }
+
+    /**
+     * Generates a random number between min and max.
+     */
+    function randRange(min, max) {
+      return Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
+    /**
+     * Resizes the canvas to fit the screen.
+     * This will be called whenever the window is resized or the orientation changes.
+     */
+    function resize() {
+      // Check if the window is in landscape orientation and set the width and height accordingly.
+      // These are the real dimensions of the canvas, before scaling.
+      if (window.innerWidth > window.innerHeight) {
+        // Landscape
+        w = 256;
+        h = 144;
+      } else {
+        // Portrait
+        w = 144;
+        h = 256;
+      }
+
+      // Calculate the maximum distance, using half the diagonal of the canvas
+      maxd = dist({ x: 0, y: 0 }, { x: w, y: h }) / 2;
+
+      // Set the cursor position to the center of the canvas
+      c.x = w / 2;
+      c.y = h / 2;
+
+      // Set the width and height of the orig canvas
+      orig.width = w;
+      orig.height = h;
+
+      // Set the width and height of the scaled canvas, before fitting to the aspect ratio of the orig canvas
+      rw = $.innerWidth || e.clientWidth || b.clientWidth;
+      rh = $.innerHeight || e.clientHeight || b.clientHeight;
+
+      // Fit the scaled canvas to the aspect ratio of the orig canvas
+      const d = fit(w, h, rw, rh);
+      scaled.width = d[0];
+      scaled.height = d[1];
+      rw = scaled.width;
+      rh = scaled.height;
+
+      // Disable image smoothing for both canvases to get a pixelated look
+      ctx.imageSmoothingEnabled = false;
+      scaledCtx.imageSmoothingEnabled = false;
+    }
+
+    /**
+     * Event handler for the devicemotion event.
+     * This will be called whenever the device is moved.
+     * 
+     * It will adjust the current position of the cursor depending on the device orientation.
+     */
+    function devicemotion(e) {
+      const w2 = w / 2;
+      const h2 = h / 2;
+      c.x = w2 * (1 + e.accelerationIncludingGravity.x / 9.8);
+      c.y = h2 * (e.accelerationIncludingGravity.y / 9.8);
+    }
+
+    /**
+     * Event handler for the mousemove event.
+     * This will be called whenever the mouse is moved.
+     * 
+     * It will set the current position of the cursor to the position of the mouse.
+     */
+    function mousemove(e) {
+      c.x = (e.clientX - e.currentTarget.offsetLeft) / rw * w;
+      c.y = (e.clientY - e.currentTarget.offsetTop) / rh * h;
+    }
+
+    /**
+     * Event handler for the click event.
+     * It will toggle the shouldClear flag, which determines whether the canvas should be cleared each frame.
+     */
+    function click() {
+      shouldClear = !shouldClear;
+    }
+
+    /**
+     * Initializes the particles array. This will create 100 particles with random positions.
+     */
+    function initParticles() {
+      particles.length = 0;
+      for (let i = 0; i < 100; i++) {
+        particles.push({
+          x: randRange(0, w),
+          y: randRange(0, h),
+        });
+      }
+    }
+
+    /**
+     * The main animation loop.
+     */
+    function frame() {
+      if (shouldClear) {
+        // Clear the canvas if shouldClear is true
+        // If not, the previous frame will be visible, creating a trail effect for the particles.
+        ctx.fillStyle = '#012';
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      speed += Math.sin(t) * 0.01;
+
+      // Loop through all the particles, render them, and update their position.
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const a = dist(p, c) / maxd; // Calculate the alpha value of the particle based on distance from the center.
+
+        // Set the color based on the calculated alpha value and draw the particle as a rectangle.
+        ctx.fillStyle = "rgba(255, 255, 255, " + a + ")";
+        ctx.fillRect(p.x, p.y, 1, 1);
+
+        // Update the position of the particle based on the cursor position and speed.
+        p.x -= (c.x - p.x) * speed;
+        p.y -= (c.y - p.y) * speed;
+
+        // If the particle is outside the canvas, reset its position to a random location near the cursor.
+        if (p.y <= 0 || p.y > h) p.y = c.y + randRange(-h * 0.1, h * 0.1);
+        if (p.x <= 0 || p.x > w) p.x = c.x + randRange(-w * 0.1, w * 0.1);
+      }
+
+      // Copy the contents of the orig canvas to the scaled canvas
+      scaledCtx.drawImage(orig, 0, 0, w, h, 0, 0, rw, rh);
+
+      t++; // Increase the time variable
+
+      if (debug) {
+        // If debug is enabled, display the cursor position
+        document.getElementById('debug').textContent = `${c.x},${c.y}`;
+      }
+
+      // Request the next frame
+      $.requestAnimationFrame(frame);
+    }
+
+    // add event listeners to the scaled canvas
+    scaled.addEventListener('mousemove', mousemove);
+    scaled.addEventListener('click', click);
+
+    // add event listeners to the window
+    $.addEventListener('resize', resize);
+    $.addEventListener('orientationchange', resize);
+    $.addEventListener('devicemotion', devicemotion, true);
+    
+    // call the resize function to initialize the canvas
+    resize();
+
+    // initialize the particles array
+    initParticles();
+
+    // start the animation loop
+    frame();
+  </script>
+</body>
+
+</html>
