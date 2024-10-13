@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<head>
+    <style>
+        body,
+        html {
+            font-family: sans-serif;
+            color: #aaa;
+            background: #222;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #wrap {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+
+<body>
+    <div id="wrap">
+        <canvas id="stage"></canvas>
+    </div>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+                q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+                q.msRequestAnimationFrame || function (f) { q.setTimeout(f, 16); },
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            canvas = document.getElementById('stage'),
+            ctx = canvas.getContext('2d'),
+            t = 0,
+            smallW = 256/2, // Smaller canvas width for pixelated look
+            smallH = 144/2,  // Smaller canvas height for pixelated look
+            rh = smallH, rw = smallW,
+            distortions = ["scroll", "wave", "skew", "rotation", "spiral", "mask", "zoom"],
+            currentDistortions = ["zoom"], nextDistortions = [],
+            transitionStartTime = 0, transitionDuration = 150;
+
+        var bufferCanvasOld = document.createElement('canvas');
+        var bufferCtxOld = bufferCanvasOld.getContext('2d');
+        var bufferCanvasNew = document.createElement('canvas');
+        var bufferCtxNew = bufferCanvasNew.getContext('2d');
+
+        bufferCanvasOld.width = smallW;
+        bufferCanvasOld.height = smallH;
+        bufferCanvasNew.width = smallW;
+        bufferCanvasNew.height = smallH;
+
+        let palettes = [
+            ["#FF6EC7", "#1D1E33"], // Neon pink and dark blue
+            ["#00F5FF", "#F51720"], // Neon cyan and red
+            ["#8D00FF", "#FFE459"], // Purple and yellow
+            ["#FF007F", "#120458"], // Pink and deep purple
+            ["#FFC700", "#0AFFFF"]  // Yellow and cyan
+        ];
+
+        let currentPaletteIndex = 0;
+        let nextPaletteIndex = 1;
+        let paletteTransitionProgress = 0;
+
+        function fit(w, h, mw, mh) {
+            var ratio = Math.min(mw / w, mh / h);
+            var rw = w * ratio;
+            var rh = h * ratio;
+            return [rw, rh];
+        }
+
+        function resize() {
+            rw = q.innerWidth || e.clientWidth || b.clientWidth;
+            rh = q.innerHeight || e.clientHeight || b.clientHeight;
+
+            var d = fit(smallW, smallH, rw, rh);
+            canvas.width = d[0];
+            canvas.height = d[1];
+            rw = canvas.width;
+            rh = canvas.height;
+
+            ctx.imageSmoothingEnabled = false;
+        }
+
+        q.addEventListener('resize', resize);
+
+        function onclick() {
+            chooseDistortions();
+        }
+        q.addEventListener('click', onclick);
+
+        function lerpColor(color1, color2, t) {
+            // Convert hex colors to RGB
+            let c1 = parseInt(color1.slice(1), 16);
+            let c2 = parseInt(color2.slice(1), 16);
+            let r1 = (c1 >> 16) & 0xff, g1 = (c1 >> 8) & 0xff, b1 = c1 & 0xff;
+            let r2 = (c2 >> 16) & 0xff, g2 = (c2 >> 8) & 0xff, b2 = c2 & 0xff;
+
+            // Linearly interpolate between colors
+            let r = Math.round(r1 + (r2 - r1) * t);
+            let g = Math.round(g1 + (g2 - g1) * t);
+            let b = Math.round(b1 + (b2 - b1) * t);
+
+            // Convert back to hex
+            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        }
+
+        function getCurrentColors() {
+            let color1 = lerpColor(palettes[currentPaletteIndex][0], palettes[nextPaletteIndex][0], paletteTransitionProgress);
+            let color2 = lerpColor(palettes[currentPaletteIndex][1], palettes[nextPaletteIndex][1], paletteTransitionProgress);
+            return [color1, color2];
+        }
+
+        function drawCheckerboardPattern(context) {
+            let [color1, color2] = getCurrentColors();
+
+            let patternCanvas = document.createElement('canvas');
+            let patternContext = patternCanvas.getContext('2d');
+            let checkerSize = 32;
+
+            patternCanvas.width = checkerSize * 2;
+            patternCanvas.height = checkerSize * 2;
+
+            patternContext.fillStyle = color1; // Color 1 of checkerboard
+            patternContext.fillRect(0, 0, checkerSize, checkerSize);
+            patternContext.fillRect(checkerSize, checkerSize, checkerSize, checkerSize);
+
+            patternContext.fillStyle = color2; // Color 2 of checkerboard
+            patternContext.fillRect(checkerSize, 0, checkerSize, checkerSize);
+            patternContext.fillRect(0, checkerSize, checkerSize, checkerSize);
+
+            let pattern = context.createPattern(patternCanvas, 'repeat');
+            context.fillStyle = pattern;
+            context.fillRect(-smallW, -smallH, smallW * 3, smallH * 3);
+        }
+
+        let zoomLevel = 1; // Global variable to track zoom level
+
+        function applyDistortion(type, context) {
+            switch (type) {
+                case "scroll":
+                    context.translate(Math.sin(t / 20) * 20, Math.cos(t / 20) * 20);
+                    break;
+                case "wave":
+                    context.setTransform(1, 0.1 * Math.sin(t / 10), 0.1 * Math.cos(t / 10), 1, 0, 0);
+                    break;
+                case "skew":
+                    context.setTransform(1, 0.2 * Math.sin(t / 30), 0.2 * Math.cos(t / 30), 1, 0, 0);
+                    break;
+                case "rotation":
+                    context.translate(smallW / 2, smallH / 2);
+                    context.rotate(Math.sin(t / 50) * Math.PI / 4);
+                    context.translate(-smallW / 2, -smallH / 2);
+                    break;
+                case "spiral":
+                    context.translate(smallW / 2, smallH / 2);
+                    context.rotate(t / 50);
+                    context.scale(1 + 0.02 * Math.sin(t / 30), 1 + 0.02 * Math.sin(t / 30));
+                    context.translate(-smallW / 2, -smallH / 2);
+                    break;
+                case "mask":
+                    context.globalCompositeOperation = 'destination-in';
+                    drawCheckerboardPattern(context);
+                    context.globalCompositeOperation = 'source-over';
+                    break;
+                case "zoom":
+                    // Smooth zoom in and out effect
+                    zoomLevel = 1 + Math.sin(t / 100) * 1.5; // Adjust range and speed with parameters
+
+                    // Apply scaling transformation based on the calculated zoom level
+                    context.translate(smallW / 2, smallH / 2);
+                    context.scale(zoomLevel, zoomLevel);
+                    context.translate(-smallW / 2, -smallH / 2);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function chooseDistortions() {
+            nextDistortions = [];
+            let count = Math.floor(Math.random() * 2) + 2;
+            while (nextDistortions.length < count) {
+                let choice = distortions[Math.floor(Math.random() * distortions.length)];
+                if (!nextDistortions.includes(choice)) {
+                    nextDistortions.push(choice);
+                }
+            }
+            transitionStartTime = t;
+
+            bufferCtxNew.clearRect(0, 0, smallW, smallH);
+            bufferCtxNew.save();
+            for (let i = 0; i < nextDistortions.length; i++) {
+                applyDistortion(nextDistortions[i], bufferCtxNew);
+            }
+            drawCheckerboardPattern(bufferCtxNew);
+            bufferCtxNew.restore();
+        }
+
+        resize();
+        chooseDistortions();
+
+        !function loop() {
+            // Draw a semi-transparent rectangle over the canvas instead of clearing it
+            ctx.globalAlpha = 0.1; // Control the trail length with opacity
+            ctx.fillStyle = '#222'; // Semi-transparent background color
+            ctx.fillRect(0, 0, rw, rh); // Draw rectangle to slightly fade out the previous frames
+
+            bufferCtxOld.clearRect(0, 0, smallW, smallH);
+            bufferCtxOld.save();
+            for (let i = 0; i < currentDistortions.length; i++) {
+                applyDistortion(currentDistortions[i], bufferCtxOld);
+            }
+            drawCheckerboardPattern(bufferCtxOld);
+            bufferCtxOld.restore();
+
+            ctx.globalAlpha = 1; // Reset alpha to default
+            ctx.drawImage(bufferCanvasOld, 0, 0, smallW, smallH, 0, 0, rw, rh);
+
+            // Update animation parameters for distortions
+            t++;
+
+            // Apply next distortions gradually over time
+            bufferCtxNew.clearRect(0, 0, smallW, smallH);
+            bufferCtxNew.save();
+            for (let i = 0; i < nextDistortions.length; i++) {
+                applyDistortion(nextDistortions[i], bufferCtxNew);
+            }
+            drawCheckerboardPattern(bufferCtxNew);
+            bufferCtxNew.restore();
+
+            ctx.drawImage(bufferCanvasNew, 0, 0, smallW, smallH, 0, 0, rw, rh);
+
+            // Update palette transition progress
+            paletteTransitionProgress += 0.001; // Adjust this value to control the speed of color transitions
+
+            if (paletteTransitionProgress >= 1) {
+                paletteTransitionProgress = 0;
+                currentPaletteIndex = nextPaletteIndex;
+                nextPaletteIndex = (nextPaletteIndex + 1) % palettes.length; // Cycle to the next palette
+            }
+
+            // Update distortions continuously
+            currentDistortions = nextDistortions.slice();
+
+            anim(loop);
+        }();
+    </script>
+</body>
+
+</html>
