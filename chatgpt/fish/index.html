@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<head>
+  <style>
+    body,
+    html {
+      font-family: sans-serif;
+      color: #aaa;
+      background: #000080;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    #stage,
+    #info {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    #info {
+      font-size: .9em;
+      padding: 10px;
+    }
+  </style>
+  <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+
+<body>
+  <div id=info></div>
+  <canvas id=stage></canvas>
+  <script>
+    var q = window,
+      anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+        q.mozRequestAnimationFrame || q.msRequestAnimationFrame || function (f) { q.setTimeout(f, 16); },
+      e = document.documentElement,
+      b = document.getElementsByTagName('body')[0],
+      c = document.getElementById('stage'),
+      ctx = c.getContext('2d'),
+      t = 0,
+      pi = Math.PI,
+      pi2 = pi * 2,
+      fishes = [],
+      bubbles = [],
+      lightRays = [],
+      mouse = { x: 0, y: 0 },
+      w, h;
+
+    var maxPopulation = 100;
+    var bgAmplitude = 20;
+    var bgFrequency = 0.02;
+
+    function resize() {
+      w = q.innerWidth || e.clientWidth || b.clientWidth;
+      h = q.innerHeight || e.clientHeight || b.clientHeight;
+      c.width = w;
+      c.height = h;
+    }
+
+    function mousemove(e) {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    }
+
+    function distance(a, b) {
+      return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+    }
+
+    function Fish(x, y) {
+      this.x = x;
+      this.y = y;
+      this.vx = (Math.random() - 0.5) * 2;
+      this.vy = (Math.random() - 0.5) * 2;
+      this.size = 10 + Math.random() * 10;
+      this.maxSpeed = 3;
+      this.growthRate = 0.005;
+      this.maxSize = 22.5;
+      this.wobbleOffset = Math.random() * pi2;
+      this.lifespan = 10000 + Math.random() * 5000; // Lifespan in ms
+      this.hasSplit = false;
+      this.alpha = 1.0;
+      this.hue = Math.random() * 360; // Color hue for gradual color change
+
+      var hueOffset = this.hue + (Math.random() * 40 - 20);
+      this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
+      this.gradientEnd = `hsl(${hueOffset}, 100%, 60%)`;
+    }
+
+    Fish.prototype.update = function (deltaTime) {
+      var dist = distance(this, mouse);
+
+      if (dist < 100) {
+        var angle = Math.atan2(this.y - mouse.y, this.x - mouse.x);
+        this.vx += Math.cos(angle) * 0.05;
+        this.vy += Math.sin(angle) * 0.05;
+      }
+
+      var edgeThreshold = 100;
+      if (this.x < edgeThreshold) {
+        this.vx += 0.05;
+      }
+      if (this.x > w - edgeThreshold) {
+        this.vx -= 0.05;
+      }
+      if (this.y < edgeThreshold) {
+        this.vy += 0.05;
+      }
+      if (this.y > h - edgeThreshold) {
+        this.vy -= 0.05;
+      }
+
+      var wobbleFactor = Math.sin(t * 0.02 + this.wobbleOffset) * 0.2;
+      this.vx += wobbleFactor * 0.02;
+      this.vy += wobbleFactor * 0.02;
+
+      var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (speed > this.maxSpeed) {
+        this.vx = (this.vx / speed) * this.maxSpeed;
+        this.vy = (this.vy / speed) * this.maxSpeed;
+      }
+
+      this.x += this.vx;
+      this.y += this.vy;
+
+      this.size += this.growthRate;
+
+      this.lifespan -= deltaTime;
+
+      // Ensure fish dies only after splitting at least once
+      if (this.lifespan <= 0 && this.hasSplit) {
+        this.alpha -= 0.01; // Smooth fade out
+        if (this.alpha <= 0.01) { // Remove once invisible
+          this.die(); 
+        }
+      } else if (this.size > this.maxSize && fishes.length < maxPopulation) {
+        this.split();
+      }
+
+      // Gradual color change
+      this.hue = (this.hue + 0.1) % 360;
+      this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
+      this.gradientEnd = `hsl(${this.hue + 20}, 100%, 60%)`;
+
+      this.draw();
+    }
+
+    Fish.prototype.draw = function () {
+      if (this.alpha <= 0.01) return; // Avoid drawing fish that are practically invisible
+
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(Math.atan2(this.vy, this.vx));
+
+      ctx.globalAlpha = this.alpha;
+
+      var gradient = ctx.createLinearGradient(-this.size * 1.5, 0, this.size * 1.5, 0);
+      gradient.addColorStop(0, this.gradientStart);
+      gradient.addColorStop(1, this.gradientEnd);
+
+      ctx.fillStyle = gradient;
+
+      ctx.beginPath();
+      ctx.moveTo(-this.size * 1.5, 0);
+      ctx.quadraticCurveTo(0, -this.size, this.size * 1.5, 0);
+      ctx.quadraticCurveTo(0, this.size, -this.size * 1.5, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-this.size * 1.5, 0);
+      ctx.lineTo(-this.size * 2.5, -this.size / 2);
+      ctx.quadraticCurveTo(-this.size * 2, 0, -this.size * 2.5, this.size / 2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+      ctx.globalAlpha = 1; // Reset global alpha after drawing each fish
+    }
+
+    Fish.prototype.split = function () {
+      var newFish1 = new Fish(this.x, this.y);
+      var newFish2 = new Fish(this.x, this.y);
+
+      // Ensure new fish inherit a reduced portion of the parent's remaining lifespan
+      newFish1.lifespan = this.lifespan / 2;
+      newFish2.lifespan = this.lifespan / 2;
+
+      newFish1.size = this.size / 2;
+      newFish2.size = this.size / 2;
+
+      newFish1.gradientStart = this.gradientStart;
+      newFish1.gradientEnd = this.gradientEnd;
+      newFish2.gradientStart = this.gradientStart;
+      newFish2.gradientEnd = this.gradientEnd;
+
+      fishes.push(newFish1, newFish2);
+      this.size = this.size / 2;
+      this.hasSplit = true; // Mark the original fish as having split
+    }
+
+    Fish.prototype.die = function () {
+      fishes.splice(fishes.indexOf(this), 1);
+    }
+
+    function init() {
+      for (var i = 0; i < 30; i++) {
+        fishes.push(new Fish(Math.random() * w, Math.random() * h));
+      }
+
+      // Add bubbles and light rays for background effects
+      for (var i = 0; i < 20; i++) {
+        bubbles.push({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 3 + 2 });
+      }
+      for (var i = 0; i < 5; i++) {
+        lightRays.push({ x: Math.random() * w, width: Math.random() * 100 + 50 });
+      }
+    }
+
+    function animateBackground(deltaTime) {
+      var layers = 5;
+      var diagonal = Math.sqrt(w * w + h * h);
+
+      bgAmplitude = 15 + 10 * Math.sin(deltaTime * 0.0001); // Slowly oscillate amplitude
+      bgFrequency = 0.02 + 0.01 * Math.sin(deltaTime * 0.00005); // Slowly oscillate frequency
+
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(45 * Math.PI / 180);
+      ctx.translate(-diagonal / 2, -diagonal / 2);
+
+      var gradient = ctx.createLinearGradient(0, 0, 0, diagonal);
+      gradient.addColorStop(0, "#001f3f");
+      gradient.addColorStop(0.25, "#0074D9");
+      gradient.addColorStop(0.5, "#7FDBFF");
+      gradient.addColorStop(0.75, "#39CCCC");
+      gradient.addColorStop(1, "#B0E0E6");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, diagonal, diagonal);
+
+      for (var j = 0; j < layers; j++) {
+        var yOffset = (t + j * 100) * bgFrequency;
+        ctx.beginPath();
+        for (var i = 0; i < diagonal; i++) {
+          var y = Math.sin((i * bgFrequency) + yOffset) * bgAmplitude + (diagonal / layers) * j;
+          if (i === 0) {
+            ctx.moveTo(i, y);
+          } else {
+            ctx.lineTo(i, y);
+          }
+        }
+        ctx.lineTo(diagonal, diagonal);
+        ctx.lineTo(0, diagonal);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      // Draw bubbles rising
+      bubbles.forEach(bubble => {
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.r, 0, pi2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fill();
+        bubble.y -= 0.5;
+        if (bubble.y < -bubble.r) {
+          bubble.x = Math.random() * w;
+          bubble.y = h + bubble.r;
+        }
+      });
+
+      // Draw diagonal light rays (opposite of wave direction)
+      lightRays.forEach(ray => {
+        ctx.save();
+        ctx.translate(ray.x, -h / 4);
+        ctx.rotate(45 * Math.PI / 180); // Rotate in opposite direction (opposite to the wave rotation)
+        ctx.beginPath();
+        ctx.rect(0, 0, ray.width, h * 2); // Lengthen to cover the diagonal
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    var lastTime = 0;
+    function loop(timestamp) {
+      var deltaTime = timestamp - lastTime;
+      lastTime = timestamp;
+
+      ctx.clearRect(0, 0, w, h);
+      animateBackground(deltaTime);
+      fishes.forEach(fish => fish.update(deltaTime));
+      t++;
+      anim(loop);
+    }
+
+    q.addEventListener('mousemove', mousemove);
+    q.addEventListener('resize', resize);
+    resize();
+    init();
+    loop(0);
+  </script>
+</body>
+
+</html>

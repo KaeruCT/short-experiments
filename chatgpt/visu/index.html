@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<head>
+    <style>body,html{font-family:sans-serif;color:#aaa;background:#000;margin:0;padding:0;height:100%;width:100%;overflow:hidden;}
+        #stage,#info{position:absolute;top:0;bottom:0;left:0;right:0;}
+        #info{font-size:.9em;padding:10px;}
+    </style>
+    <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id=info></div>
+    <canvas id=stage></canvas>
+    <script>
+        var q = window,
+            anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+            q.mozRequestAnimationFrame || q.oRequestAnimationFrame ||
+            q.msRequestAnimationFrame || function (f) {q.setTimeout(f, 16);},
+            e = document.documentElement,
+            b = document.getElementsByTagName('body')[0],
+            c = document.getElementById('stage'),
+            ctx = c.getContext('2d'),
+            t = 0,
+            pi = Math.PI,
+            pi2 = Math.PI * 2,
+            shapes = ['line', 'rectangle', 'ellipse', 'triangle', 'arc', 'hexagon'],
+            shapeIndex = 0,
+            nextShapeChange = 0,
+            w, h, cols, rows, cellSize;
+
+        function resize () {
+            w = q.innerWidth || e.clientWidth || b.clientWidth;
+            h = q.innerHeight || e.clientHeight || b.clientHeight;
+            c.width = w;
+            c.height = h;
+
+            cellSize = Math.min(w, h) / 10;
+            cols = Math.floor(w / cellSize);
+            rows = Math.floor(h / cellSize);
+        }
+
+        function drawLine(x, y, angle) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + cellSize * Math.cos(angle), y + cellSize * Math.sin(angle));
+            ctx.stroke();
+        }
+
+        function drawRectangle(x, y, wRatio, hRatio) {
+            ctx.beginPath();
+            ctx.rect(x, y, cellSize * wRatio, cellSize * hRatio);
+            ctx.stroke();
+        }
+
+        function drawEllipse(x, y, xRatio, yRatio) {
+            ctx.beginPath();
+            ctx.ellipse(x + cellSize / 2, y + cellSize / 2, cellSize * xRatio, cellSize * yRatio, 0, 0, pi2);
+            ctx.stroke();
+        }
+
+        function drawTriangle(x, y, sizeRatio) {
+            ctx.beginPath();
+            ctx.moveTo(x + cellSize * sizeRatio, y);
+            ctx.lineTo(x + cellSize, y + cellSize);
+            ctx.lineTo(x, y + cellSize);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function drawArc(x, y, radiusRatio) {
+            ctx.beginPath();
+            ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize * radiusRatio, 0, pi2);
+            ctx.stroke();
+        }
+
+        function drawHexagon(x, y, sizeRatio) {
+            const angle = pi / 3;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                ctx.lineTo(x + cellSize * sizeRatio * Math.cos(angle * i), y + cellSize * sizeRatio * Math.sin(angle * i));
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        function drawShape(x, y, type, frame, col, row) {
+            const angle = (frame / 50) + (col + row) / 5;
+            switch(type) {
+                case 'line':
+                    drawLine(x, y, angle);
+                    break;
+                case 'rectangle':
+                    drawRectangle(x, y, Math.sin(angle) * 0.5 + 0.5, Math.cos(angle) * 0.5 + 0.5);
+                    break;
+                case 'ellipse':
+                    drawEllipse(x, y, Math.sin(angle) * 0.5 + 0.5, Math.cos(angle) * 0.5 + 0.5);
+                    break;
+                case 'triangle':
+                    drawTriangle(x, y, Math.sin(angle) * 0.5 + 0.5);
+                    break;
+                case 'arc':
+                    drawArc(x, y, Math.sin(angle) * 0.5 + 0.5);
+                    break;
+                case 'hexagon':
+                    drawHexagon(x, y, Math.sin(angle) * 0.5 + 0.5);
+                    break;
+            }
+        }
+
+        function animateShapes(frame) {
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = '#FFF';
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col * cellSize;
+                    const y = row * cellSize;
+                    const shapeType = shapes[shapeIndex];
+                    drawShape(x, y, shapeType, frame, col, row);
+                }
+            }
+
+            if (frame >= nextShapeChange) {
+                shapeIndex = (shapeIndex + 1) % shapes.length;
+                const secs = 10;
+                nextShapeChange = frame + 60 * secs; // Change every secs seconds
+            }
+
+            anim(() => animateShapes(frame + 1));
+        }
+
+        resize();
+        animateShapes(0);
+        q.addEventListener('resize', resize);
+    </script>
+</body>
+</html>
