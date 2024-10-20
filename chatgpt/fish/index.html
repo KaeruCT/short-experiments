@@ -39,9 +39,29 @@
 </head>
 
 <body>
-  <div id=info></div>
-  <canvas id=stage></canvas>
+  <div id="info"></div>
+  <canvas id="stage"></canvas>
   <script>
+    const settings = {
+      maxPopulation: 30,
+      edgeThreshold: 100,
+      maxFishSpeed: 3,
+      fishGrowthRate: 0.005,
+      fishMaxSize: 22.5,
+      fishLifespan: { min: 10000, max: 15000 },
+      fishColorChangeRate: 0.1,
+      background: {
+        amplitudeBase: 15,
+        amplitudeOscillation: 10,
+        frequencyBase: 0.02,
+        frequencyOscillation: 0.01,
+        layers: 5,
+        diagonalColorStops: [
+          "#001f3f", "#0074D9", "#7FDBFF", "#39CCCC", "#B0E0E6"
+        ]
+      }
+    };
+
     class Fish {
       constructor(x, y) {
         this.x = x;
@@ -49,15 +69,14 @@
         this.vx = (Math.random() - 0.5) * 2;
         this.vy = (Math.random() - 0.5) * 2;
         this.size = 10 + Math.random() * 10;
-        this.maxSpeed = 3;
-        this.growthRate = 0.005;
-        this.maxSize = 22.5;
+        this.maxSpeed = settings.maxFishSpeed;
+        this.growthRate = settings.fishGrowthRate;
+        this.maxSize = settings.fishMaxSize;
         this.wobbleOffset = Math.random() * Math.PI * 2;
-        this.lifespan = 10000 + Math.random() * 5000;
+        this.lifespan = settings.fishLifespan.min + Math.random() * (settings.fishLifespan.max - settings.fishLifespan.min);
         this.hasSplit = false;
         this.alpha = 1.0;
         this.hue = Math.random() * 360;
-
         const hueOffset = this.hue + (Math.random() * 40 - 20);
         this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
         this.gradientEnd = `hsl(${hueOffset}, 100%, 60%)`;
@@ -83,11 +102,7 @@
           this.vy += Math.sin(angle) * 0.05;
         }
 
-        const edgeThreshold = 100;
-        if (this.x < edgeThreshold) this.vx += 0.05;
-        if (this.x > w - edgeThreshold) this.vx -= 0.05;
-        if (this.y < edgeThreshold) this.vy += 0.05;
-        if (this.y > h - edgeThreshold) this.vy -= 0.05;
+        this.handleBoundaries();
 
         const wobbleFactor = Math.sin(t * 0.02 + this.wobbleOffset) * 0.2;
         this.vx += wobbleFactor * 0.02;
@@ -102,12 +117,34 @@
         this.x += this.vx;
         this.y += this.vy;
 
+        this.updateSize();
+        this.updateColor();
+        this.updateAlpha(deltaTime);
+        this.draw();
+      }
+
+      handleBoundaries() {
+        if (this.x < settings.edgeThreshold) this.vx += 0.05;
+        if (this.x > w - settings.edgeThreshold) this.vx -= 0.05;
+        if (this.y < settings.edgeThreshold) this.vy += 0.05;
+        if (this.y > h - settings.edgeThreshold) this.vy -= 0.05;
+      }
+
+      updateSize() {
         if (this.size < this.maxSize) {
           this.size += this.growthRate;
-        } else if (fishes.length < maxPopulation && !this.hasSplit) {
+        } else if (fishes.length < settings.maxPopulation && !this.hasSplit) {
           this.split();
         }
+      }
 
+      updateColor() {
+        this.hue = (this.hue + settings.fishColorChangeRate) % 360;
+        this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
+        this.gradientEnd = `hsl(${this.hue + 20}, 100%, 60%)`;
+      }
+
+      updateAlpha(deltaTime) {
         const shouldDie = this.lifespan <= 0 && this.hasSplit;
         if (shouldDie && !dyingFish) dyingFish = this;
 
@@ -116,17 +153,10 @@
           if (this.alpha <= 0.01) {
             this.die();
             dyingFish = undefined;
-            return;
           }
         }
 
         this.lifespan -= deltaTime;
-
-        this.hue = (this.hue + 0.1) % 360;
-        this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
-        this.gradientEnd = `hsl(${this.hue + 20}, 100%, 60%)`;
-
-        this.draw();
       }
 
       draw() {
@@ -201,9 +231,8 @@
     let mouse = { x: 0, y: 0 };
     let w, h;
 
-    const maxPopulation = 30;
-    let bgAmplitude = 20;
-    let bgFrequency = 0.02;
+    let bgAmplitude = settings.background.amplitudeBase;
+    let bgFrequency = settings.background.frequencyBase;
     let dyingFish;
 
     function resize() {
@@ -226,7 +255,7 @@
     }
 
     function init() {
-      for (let i = 0; i < maxPopulation; i++) {
+      for (let i = 0; i < settings.maxPopulation; i++) {
         fishes.push(new Fish(Math.random() * w, Math.random() * h));
       }
 
@@ -239,11 +268,11 @@
     }
 
     function animateBackground(deltaTime) {
-      const layers = 5;
+      const layers = settings.background.layers;
       const diagonal = Math.sqrt(w * w + h * h);
 
-      bgAmplitude = 15 + 10 * Math.sin(deltaTime * 0.0001);
-      bgFrequency = 0.02 + 0.01 * Math.sin(deltaTime * 0.00005);
+      bgAmplitude = settings.background.amplitudeBase + settings.background.amplitudeOscillation * Math.sin(deltaTime * 0.0001);
+      bgFrequency = settings.background.frequencyBase + settings.background.frequencyOscillation * Math.sin(deltaTime * 0.00005);
 
       ctx.save();
       ctx.translate(w / 2, h / 2);
@@ -251,11 +280,9 @@
       ctx.translate(-diagonal / 2, -diagonal / 2);
 
       const gradient = ctx.createLinearGradient(0, 0, 0, diagonal);
-      gradient.addColorStop(0, "#001f3f");
-      gradient.addColorStop(0.25, "#0074D9");
-      gradient.addColorStop(0.5, "#7FDBFF");
-      gradient.addColorStop(0.75, "#39CCCC");
-      gradient.addColorStop(1, "#B0E0E6");
+      settings.background.diagonalColorStops.forEach((color, i) => {
+        gradient.addColorStop(i / (settings.background.diagonalColorStops.length - 1), color);
+      });
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, diagonal, diagonal);
@@ -306,7 +333,6 @@
       const deltaTime = timestamp - lastTime;
       lastTime = timestamp;
 
-      ctx.clearRect(0, 0, w, h);
       animateBackground(deltaTime);
       fishes.forEach(fish => fish.update(deltaTime));
       t++;
