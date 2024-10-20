@@ -51,9 +51,10 @@
       mouse = { x: 0, y: 0 },
       w, h;
 
-    var maxPopulation = 100;
+    var maxPopulation = 30;
     var bgAmplitude = 20;
     var bgFrequency = 0.02;
+    var dyingFish = undefined;
 
     function resize() {
       w = q.innerWidth || e.clientWidth || b.clientWidth;
@@ -127,19 +128,27 @@
       this.x += this.vx;
       this.y += this.vy;
 
-      this.size += this.growthRate;
-
-      this.lifespan -= deltaTime;
-
-      // Ensure fish dies only after splitting at least once
-      if (this.lifespan <= 0 && this.hasSplit) {
-        this.alpha -= 0.01; // Smooth fade out
-        if (this.alpha <= 0.01) { // Remove once invisible
-          this.die(); 
-        }
-      } else if (this.size > this.maxSize && fishes.length < maxPopulation) {
+      if (this.size < this.maxSize) {
+        this.size += this.growthRate;
+      } else if (this.fishes.length < maxPopulation && !this.hasSplit) {
         this.split();
       }
+
+      const shouldDie = fishes.length >= maxPopulation || this.hasSplit || this.lifespan <= 0;
+      if (shouldDie && !dyingFish) {
+        dyingFish = this;
+      }
+
+      if (dyingFish === this) {
+        this.alpha -= 0.01;
+        if (this.alpha <= 0.01) {
+          this.die();
+          dyingFish = undefined;
+          return;
+        }
+      }
+
+      this.lifespan -= deltaTime;
 
       // Gradual color change
       this.hue = (this.hue + 0.1) % 360;
@@ -150,7 +159,7 @@
     }
 
     Fish.prototype.draw = function () {
-      if (this.alpha <= 0.01) return; // Avoid drawing fish that are practically invisible
+      if (this.alpha <= 0.01) return;
 
       ctx.save();
       ctx.translate(this.x, this.y);
@@ -186,10 +195,6 @@
       var newFish1 = new Fish(this.x, this.y);
       var newFish2 = new Fish(this.x, this.y);
 
-      // Ensure new fish inherit a reduced portion of the parent's remaining lifespan
-      newFish1.lifespan = this.lifespan / 2;
-      newFish2.lifespan = this.lifespan / 2;
-
       newFish1.size = this.size / 2;
       newFish2.size = this.size / 2;
 
@@ -208,7 +213,7 @@
     }
 
     function init() {
-      for (var i = 0; i < 30; i++) {
+      for (var i = 0; i < maxPopulation; i++) {
         fishes.push(new Fish(Math.random() * w, Math.random() * h));
       }
 
@@ -217,7 +222,7 @@
         bubbles.push({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 3 + 2 });
       }
       for (var i = 0; i < 5; i++) {
-        lightRays.push({ x: Math.random() * w, width: Math.random() * 100 + 50 });
+        lightRays.push({ x: w / 4 + Math.random() * w, width: Math.random() * 100 + 50 });
       }
     }
 
@@ -230,7 +235,7 @@
 
       ctx.save();
       ctx.translate(w / 2, h / 2);
-      ctx.rotate(45 * Math.PI / 180);
+      ctx.rotate(45 * pi / 180);
       ctx.translate(-diagonal / 2, -diagonal / 2);
 
       var gradient = ctx.createLinearGradient(0, 0, 0, diagonal);
@@ -277,15 +282,16 @@
       });
 
       // Draw diagonal light rays (opposite of wave direction)
-      lightRays.forEach(ray => {
+      lightRays.forEach((ray, i) => {
         ctx.save();
         ctx.translate(ray.x, -h / 4);
-        ctx.rotate(45 * Math.PI / 180); // Rotate in opposite direction (opposite to the wave rotation)
+        ctx.rotate(45 * pi / 180); // Rotate in opposite direction (opposite to the wave rotation)
         ctx.beginPath();
         ctx.rect(0, 0, ray.width, h * 2); // Lengthen to cover the diagonal
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.fill();
         ctx.restore();
+        ray.x += Math.sin((t + i) * 0.01 + i * 5) * 0.2;
       });
     }
 
