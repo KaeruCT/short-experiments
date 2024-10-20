@@ -29,32 +29,182 @@
     }
   </style>
   <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>pecaos</title>
+  <meta charset="UTF-8" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./16.png">
+  <link rel="icon" href="./144.png" type="image/png" />
+  <link rel="manifest" href="./manifest.json" />
 </head>
 
 <body>
   <div id=info></div>
   <canvas id=stage></canvas>
   <script>
-    var q = window,
-      anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
-        q.mozRequestAnimationFrame || q.msRequestAnimationFrame || function (f) { q.setTimeout(f, 16); },
-      e = document.documentElement,
-      b = document.getElementsByTagName('body')[0],
-      c = document.getElementById('stage'),
-      ctx = c.getContext('2d'),
-      t = 0,
-      pi = Math.PI,
-      pi2 = pi * 2,
-      fishes = [],
-      bubbles = [],
-      lightRays = [],
-      mouse = { x: 0, y: 0 },
-      w, h;
+    class Fish {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.size = 10 + Math.random() * 10;
+        this.maxSpeed = 3;
+        this.growthRate = 0.005;
+        this.maxSize = 22.5;
+        this.wobbleOffset = Math.random() * Math.PI * 2;
+        this.lifespan = 10000 + Math.random() * 5000;
+        this.hasSplit = false;
+        this.alpha = 1.0;
+        this.hue = Math.random() * 360;
 
-    var maxPopulation = 30;
-    var bgAmplitude = 20;
-    var bgFrequency = 0.02;
-    var dyingFish = undefined;
+        const hueOffset = this.hue + (Math.random() * 40 - 20);
+        this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
+        this.gradientEnd = `hsl(${hueOffset}, 100%, 60%)`;
+      }
+
+      update(deltaTime) {
+        // Combine mouse and touch inputs
+        const allInputPoints = [...touchPoints, mouse];
+        let closestInput = null;
+        let minDist = Infinity;
+
+        allInputPoints.forEach((input) => {
+          const dist = Math.sqrt((this.x - input.x) ** 2 + (this.y - input.y) ** 2);
+          if (dist < minDist) {
+            minDist = dist;
+            closestInput = input;
+          }
+        });
+
+        if (closestInput && minDist < 100) {
+          const angle = Math.atan2(this.y - closestInput.y, this.x - closestInput.x);
+          this.vx += Math.cos(angle) * 0.05;
+          this.vy += Math.sin(angle) * 0.05;
+        }
+
+        const edgeThreshold = 100;
+        if (this.x < edgeThreshold) this.vx += 0.05;
+        if (this.x > w - edgeThreshold) this.vx -= 0.05;
+        if (this.y < edgeThreshold) this.vy += 0.05;
+        if (this.y > h - edgeThreshold) this.vy -= 0.05;
+
+        const wobbleFactor = Math.sin(t * 0.02 + this.wobbleOffset) * 0.2;
+        this.vx += wobbleFactor * 0.02;
+        this.vy += wobbleFactor * 0.02;
+
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed > this.maxSpeed) {
+          this.vx = (this.vx / speed) * this.maxSpeed;
+          this.vy = (this.vy / speed) * this.maxSpeed;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.size < this.maxSize) {
+          this.size += this.growthRate;
+        } else if (fishes.length < maxPopulation && !this.hasSplit) {
+          this.split();
+        }
+
+        const shouldDie = this.lifespan <= 0 && this.hasSplit;
+        if (shouldDie && !dyingFish) dyingFish = this;
+
+        if (dyingFish === this) {
+          this.alpha -= 0.01;
+          if (this.alpha <= 0.01) {
+            this.die();
+            dyingFish = undefined;
+            return;
+          }
+        }
+
+        this.lifespan -= deltaTime;
+
+        this.hue = (this.hue + 0.1) % 360;
+        this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
+        this.gradientEnd = `hsl(${this.hue + 20}, 100%, 60%)`;
+
+        this.draw();
+      }
+
+      draw() {
+        if (this.alpha <= 0.01) return;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(Math.atan2(this.vy, this.vx));
+
+        ctx.globalAlpha = this.alpha;
+
+        const gradient = ctx.createLinearGradient(-this.size * 1.5, 0, this.size * 1.5, 0);
+        gradient.addColorStop(0, this.gradientStart);
+        gradient.addColorStop(1, this.gradientEnd);
+
+        ctx.fillStyle = gradient;
+
+        ctx.beginPath();
+        ctx.moveTo(-this.size * 1.5, 0);
+        ctx.quadraticCurveTo(0, -this.size, this.size * 1.5, 0);
+        ctx.quadraticCurveTo(0, this.size, -this.size * 1.5, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-this.size * 1.5, 0);
+        ctx.lineTo(-this.size * 2.5, -this.size / 2);
+        ctx.quadraticCurveTo(-this.size * 2, 0, -this.size * 2.5, this.size / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+
+      split() {
+        const newFish1 = new Fish(this.x, this.y);
+        const newFish2 = new Fish(this.x, this.y);
+
+        newFish1.size = this.size / 2;
+        newFish2.size = this.size / 2;
+
+        newFish1.gradientStart = this.gradientStart;
+        newFish1.gradientEnd = this.gradientEnd;
+        newFish2.gradientStart = this.gradientStart;
+        newFish2.gradientEnd = this.gradientEnd;
+
+        fishes.push(newFish1, newFish2);
+        this.size /= 2;
+        this.hasSplit = true;
+      }
+
+      die() {
+        fishes.splice(fishes.indexOf(this), 1);
+      }
+    }
+
+    const q = window;
+    const anim = q.requestAnimationFrame || q.webkitRequestAnimationFrame ||
+      q.mozRequestAnimationFrame || q.msRequestAnimationFrame || (f => q.setTimeout(f, 16));
+    const e = document.documentElement;
+    const b = document.getElementsByTagName('body')[0];
+    const c = document.getElementById('stage');
+    const ctx = c.getContext('2d');
+    let t = 0;
+    const pi = Math.PI;
+    const pi2 = pi * 2;
+    const fishes = [];
+    const bubbles = [];
+    const lightRays = [];
+    let touchPoints = [];
+    let mouse = { x: 0, y: 0 };
+    let w, h;
+
+    const maxPopulation = 30;
+    let bgAmplitude = 20;
+    let bgFrequency = 0.02;
+    let dyingFish;
 
     function resize() {
       w = q.innerWidth || e.clientWidth || b.clientWidth;
@@ -63,182 +213,44 @@
       c.height = h;
     }
 
-    function mousemove(e) {
+    function updateTouchPoints(e) {
+      touchPoints = Array.from(e.touches).map(touch => ({
+        x: touch.clientX,
+        y: touch.clientY
+      }));
+    }
+
+    function updateMousePosition(e) {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
     }
 
-    function distance(a, b) {
-      return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
-    }
-
-    function Fish(x, y) {
-      this.x = x;
-      this.y = y;
-      this.vx = (Math.random() - 0.5) * 2;
-      this.vy = (Math.random() - 0.5) * 2;
-      this.size = 10 + Math.random() * 10;
-      this.maxSpeed = 3;
-      this.growthRate = 0.005;
-      this.maxSize = 22.5;
-      this.wobbleOffset = Math.random() * pi2;
-      this.lifespan = 10000 + Math.random() * 5000; // Lifespan in ms
-      this.hasSplit = false;
-      this.alpha = 1.0;
-      this.hue = Math.random() * 360; // Color hue for gradual color change
-
-      var hueOffset = this.hue + (Math.random() * 40 - 20);
-      this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
-      this.gradientEnd = `hsl(${hueOffset}, 100%, 60%)`;
-    }
-
-    Fish.prototype.update = function (deltaTime) {
-      var dist = distance(this, mouse);
-
-      if (dist < 100) {
-        var angle = Math.atan2(this.y - mouse.y, this.x - mouse.x);
-        this.vx += Math.cos(angle) * 0.05;
-        this.vy += Math.sin(angle) * 0.05;
-      }
-
-      var edgeThreshold = 100;
-      if (this.x < edgeThreshold) {
-        this.vx += 0.05;
-      }
-      if (this.x > w - edgeThreshold) {
-        this.vx -= 0.05;
-      }
-      if (this.y < edgeThreshold) {
-        this.vy += 0.05;
-      }
-      if (this.y > h - edgeThreshold) {
-        this.vy -= 0.05;
-      }
-
-      var wobbleFactor = Math.sin(t * 0.02 + this.wobbleOffset) * 0.2;
-      this.vx += wobbleFactor * 0.02;
-      this.vy += wobbleFactor * 0.02;
-
-      var speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-      if (speed > this.maxSpeed) {
-        this.vx = (this.vx / speed) * this.maxSpeed;
-        this.vy = (this.vy / speed) * this.maxSpeed;
-      }
-
-      this.x += this.vx;
-      this.y += this.vy;
-
-      if (this.size < this.maxSize) {
-        this.size += this.growthRate;
-      } else if (this.fishes.length < maxPopulation && !this.hasSplit) {
-        this.split();
-      }
-
-      const shouldDie = fishes.length >= maxPopulation || this.hasSplit || this.lifespan <= 0;
-      if (shouldDie && !dyingFish) {
-        dyingFish = this;
-      }
-
-      if (dyingFish === this) {
-        this.alpha -= 0.01;
-        if (this.alpha <= 0.01) {
-          this.die();
-          dyingFish = undefined;
-          return;
-        }
-      }
-
-      this.lifespan -= deltaTime;
-
-      // Gradual color change
-      this.hue = (this.hue + 0.1) % 360;
-      this.gradientStart = `hsl(${this.hue}, 100%, 70%)`;
-      this.gradientEnd = `hsl(${this.hue + 20}, 100%, 60%)`;
-
-      this.draw();
-    }
-
-    Fish.prototype.draw = function () {
-      if (this.alpha <= 0.01) return;
-
-      ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.rotate(Math.atan2(this.vy, this.vx));
-
-      ctx.globalAlpha = this.alpha;
-
-      var gradient = ctx.createLinearGradient(-this.size * 1.5, 0, this.size * 1.5, 0);
-      gradient.addColorStop(0, this.gradientStart);
-      gradient.addColorStop(1, this.gradientEnd);
-
-      ctx.fillStyle = gradient;
-
-      ctx.beginPath();
-      ctx.moveTo(-this.size * 1.5, 0);
-      ctx.quadraticCurveTo(0, -this.size, this.size * 1.5, 0);
-      ctx.quadraticCurveTo(0, this.size, -this.size * 1.5, 0);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(-this.size * 1.5, 0);
-      ctx.lineTo(-this.size * 2.5, -this.size / 2);
-      ctx.quadraticCurveTo(-this.size * 2, 0, -this.size * 2.5, this.size / 2);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.restore();
-      ctx.globalAlpha = 1; // Reset global alpha after drawing each fish
-    }
-
-    Fish.prototype.split = function () {
-      var newFish1 = new Fish(this.x, this.y);
-      var newFish2 = new Fish(this.x, this.y);
-
-      newFish1.size = this.size / 2;
-      newFish2.size = this.size / 2;
-
-      newFish1.gradientStart = this.gradientStart;
-      newFish1.gradientEnd = this.gradientEnd;
-      newFish2.gradientStart = this.gradientStart;
-      newFish2.gradientEnd = this.gradientEnd;
-
-      fishes.push(newFish1, newFish2);
-      this.size = this.size / 2;
-      this.hasSplit = true; // Mark the original fish as having split
-    }
-
-    Fish.prototype.die = function () {
-      fishes.splice(fishes.indexOf(this), 1);
-    }
-
     function init() {
-      for (var i = 0; i < maxPopulation; i++) {
+      for (let i = 0; i < maxPopulation; i++) {
         fishes.push(new Fish(Math.random() * w, Math.random() * h));
       }
 
-      // Add bubbles and light rays for background effects
-      for (var i = 0; i < 20; i++) {
+      for (let i = 0; i < 20; i++) {
         bubbles.push({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 3 + 2 });
       }
-      for (var i = 0; i < 5; i++) {
+      for (let i = 0; i < 5; i++) {
         lightRays.push({ x: w / 4 + Math.random() * w, width: Math.random() * 100 + 50 });
       }
     }
 
     function animateBackground(deltaTime) {
-      var layers = 5;
-      var diagonal = Math.sqrt(w * w + h * h);
+      const layers = 5;
+      const diagonal = Math.sqrt(w * w + h * h);
 
-      bgAmplitude = 15 + 10 * Math.sin(deltaTime * 0.0001); // Slowly oscillate amplitude
-      bgFrequency = 0.02 + 0.01 * Math.sin(deltaTime * 0.00005); // Slowly oscillate frequency
+      bgAmplitude = 15 + 10 * Math.sin(deltaTime * 0.0001);
+      bgFrequency = 0.02 + 0.01 * Math.sin(deltaTime * 0.00005);
 
       ctx.save();
       ctx.translate(w / 2, h / 2);
       ctx.rotate(45 * pi / 180);
       ctx.translate(-diagonal / 2, -diagonal / 2);
 
-      var gradient = ctx.createLinearGradient(0, 0, 0, diagonal);
+      const gradient = ctx.createLinearGradient(0, 0, 0, diagonal);
       gradient.addColorStop(0, "#001f3f");
       gradient.addColorStop(0.25, "#0074D9");
       gradient.addColorStop(0.5, "#7FDBFF");
@@ -248,16 +260,12 @@
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, diagonal, diagonal);
 
-      for (var j = 0; j < layers; j++) {
-        var yOffset = (t + j * 100) * bgFrequency;
+      for (let j = 0; j < layers; j++) {
+        const yOffset = (t + j * 100) * bgFrequency;
         ctx.beginPath();
-        for (var i = 0; i < diagonal; i++) {
-          var y = Math.sin((i * bgFrequency) + yOffset) * bgAmplitude + (diagonal / layers) * j;
-          if (i === 0) {
-            ctx.moveTo(i, y);
-          } else {
-            ctx.lineTo(i, y);
-          }
+        for (let i = 0; i < diagonal; i++) {
+          const y = Math.sin((i * bgFrequency) + yOffset) * bgAmplitude + (diagonal / layers) * j;
+          i === 0 ? ctx.moveTo(i, y) : ctx.lineTo(i, y);
         }
         ctx.lineTo(diagonal, diagonal);
         ctx.lineTo(0, diagonal);
@@ -268,7 +276,6 @@
 
       ctx.restore();
 
-      // Draw bubbles rising
       bubbles.forEach(bubble => {
         ctx.beginPath();
         ctx.arc(bubble.x, bubble.y, bubble.r, 0, pi2);
@@ -281,13 +288,12 @@
         }
       });
 
-      // Draw diagonal light rays (opposite of wave direction)
       lightRays.forEach((ray, i) => {
         ctx.save();
         ctx.translate(ray.x, -h / 4);
-        ctx.rotate(45 * pi / 180); // Rotate in opposite direction (opposite to the wave rotation)
+        ctx.rotate(45 * pi / 180);
         ctx.beginPath();
-        ctx.rect(0, 0, ray.width, h * 2); // Lengthen to cover the diagonal
+        ctx.rect(0, 0, ray.width, h * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.fill();
         ctx.restore();
@@ -295,9 +301,9 @@
       });
     }
 
-    var lastTime = 0;
+    let lastTime = 0;
     function loop(timestamp) {
-      var deltaTime = timestamp - lastTime;
+      const deltaTime = timestamp - lastTime;
       lastTime = timestamp;
 
       ctx.clearRect(0, 0, w, h);
@@ -307,7 +313,10 @@
       anim(loop);
     }
 
-    q.addEventListener('mousemove', mousemove);
+    q.addEventListener('mousemove', updateMousePosition);
+    q.addEventListener('touchmove', updateTouchPoints);
+    q.addEventListener('touchstart', updateTouchPoints);
+    q.addEventListener('touchend', updateTouchPoints);
     q.addEventListener('resize', resize);
     resize();
     init();
